@@ -1,1 +1,40 @@
 # tre1-techniq-automation
+
+
+
+tre1-techniq-automation/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+├── app/
+│   ├── api/
+│   │   ├── lead/
+│   │   │   └── route.ts
+│   │   └── audit/
+│   │       └── complete/
+│   │           └── route.ts
+│   ├── audit/
+│   │   └── page.tsx
+│   ├── thank-you/
+│   │   └── page.tsx
+│   ├── about-lite/
+│   │   └── page.tsx
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── Header.tsx
+│   ├── Footer.tsx
+│   └── LeadForm.tsx
+├── lib/
+│   ├── supabase.ts
+│   ├── slack.ts
+│   ├── events/
+│   │   ├── eventBus.ts
+│   │   └── handlers/
+│   │       ├── slackNotifier.ts
+│   │       └── emailNotifier.ts
+│   └── reports/
+│       └── generateAuditReport.ts
+├── public/
+│   └── tre1-logo.png
+└── .env.local.example
