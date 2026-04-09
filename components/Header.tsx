@@ -26,7 +26,7 @@ export default function Header() {
               href="/audit"
               className="rounded-lg bg-tre1-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition"
             >
-              Book Audit
+              Book an Audit
             </a>
           </nav>
           

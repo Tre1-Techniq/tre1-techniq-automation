@@ -53,7 +53,7 @@ export default function Footer() {
         
         <div className="mt-8 border-t border-gray-800 pt-8">
           <p className="text-center text-gray-400 text-sm">
-            © {new Date().getFullYear()} Tre1 TechnIQ Automation. All rights reserved.
+            © {new Date().getFullYear()} (c) 2026Tre1 TechnIQ Automation. All rights reserved.
           </p>
         </div>
       </div>

@@ -26,11 +26,11 @@ export default function Home() {
       <section className="px-4 py-20 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center">
           <h1 className="text-4xl font-display font-bold tracking-tight text-tre1-dark sm:text-5xl md:text-6xl">
-            Automate Workflows.
+            Automate Your Workflows.
             <span className="block text-tre1-teal">Reclaim Focus.</span>
           </h1>
           <p className="mt-6 text-xl text-tre1-gray max-w-3xl mx-auto">
-            AI-driven systems that reduce admin time and accelerate response for growing Orange County businesses.
+            AI-driven systems that reduce admin time and accelerate response for growing businesses.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <a

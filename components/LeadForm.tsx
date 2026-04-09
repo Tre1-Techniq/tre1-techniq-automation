@@ -124,7 +124,7 @@ export default function LeadForm() {
 
       <div>
         <label htmlFor="painPoint" className="block text-sm font-medium text-gray-700">
-          What's one repetitive task that takes too much time?
+          Do you have repetitive tasks that take too much of your time?
           <span className="text-gray-500 font-normal"> (Optional)</span>
         </label>
         <textarea
