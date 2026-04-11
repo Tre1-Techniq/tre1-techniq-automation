@@ -347,7 +347,6 @@ export default function MultiStepAuditForm() {
                       value={formData.zipcode || ''}
                       onChange={(e) => handleInputChange('zipcode', e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-tre1-teal focus:border-transparent transition"
-                      placeholder="xxxxx"
                       required
                     />
                   </div>

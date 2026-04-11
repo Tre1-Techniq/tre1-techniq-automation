@@ -71,7 +71,7 @@ export default function NewsletterForm() {
                 Joining...
               </span>
             ) : (
-              'Join Newsletter'
+              'Join Our Newsletter'
             )}
           </button>
         </div>

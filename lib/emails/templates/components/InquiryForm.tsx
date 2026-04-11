@@ -94,12 +94,12 @@ export default function InquiryForm() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h2>
           <p className="text-gray-600">
-            Your inquiry has been submitted successfully. We'll review your information and get back to you within 24 hours.
+            Your inquiry was submitted successfully. We'll review your information and respond within 24 hours.
           </p>
         </div>
         <div className="p-4 bg-blue-50 rounded-lg">
           <p className="text-sm text-blue-800">
-            Check your email ({formData.email}) for a confirmation message from Tre1 TechnIQ.
+            Check your email ({formData.email}) for a confirmation message.
           </p>
         </div>
       </div>

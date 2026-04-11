@@ -134,7 +134,7 @@ export default function LeadForm() {
           value={formData.painPoint}
           onChange={handleChange}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tre1-teal focus:ring-tre1-teal p-3 border"
-          placeholder="e.g., manually following up with leads, scheduling appointments, generating reports..."
+          placeholder="e.g., manually following up with leads, scheduling appointments, team coordination..."
         />
       </div>
 
