@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import MembersNavbar from '@/components/MembersNavbar'
 
+export const dynamic = 'force-dynamic'
+
 export default async function MembersLayout({
   children,
 }: {

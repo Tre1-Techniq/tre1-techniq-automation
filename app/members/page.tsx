@@ -15,6 +15,8 @@ import {
   SparklesIcon
 } from '@heroicons/react/24/outline'
 
+export const dynamic = 'force-dynamic'
+
 export default function MembersDashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
