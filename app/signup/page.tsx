@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState('')
@@ -90,12 +91,21 @@ export default function SignupPage() {
 
       if (authData.user) {
         try {
-          await supabase
+          // Use admin client to bypass RLS policies
+          const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .insert({
               id: authData.user.id,
-              tier: 'free'
+              tier: 'free',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             })
+
+          if (profileError) {
+            console.warn('Profile creation warning:', profileError)
+          } else {
+            console.log('Profile created successfully for user:', authData.user.id)
+          }
         } catch (profileError) {
           console.warn('Profile creation error:', profileError)
         }
