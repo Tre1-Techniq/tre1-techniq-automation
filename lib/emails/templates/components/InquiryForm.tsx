@@ -10,6 +10,7 @@ const steps = [
   { id: 3, title: 'Review', fields: [] }
 ]
 
+// email send logicin API vs Route.
 export default function InquiryForm() {
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
