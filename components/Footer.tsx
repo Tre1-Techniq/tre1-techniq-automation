@@ -1,3 +1,5 @@
+import NewsletterForm from '@/components/NewsletterForm'
+
 export default function Footer() {
   return (
     <footer className="bg-tre1-dark text-white">
@@ -37,7 +39,7 @@ export default function Footer() {
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Contact</h3>
             <ul className="mt-4 space-y-2">
               <li className="text-gray-300">Orange County, CA</li>
-              <li><a href="mailto:hello@tre1techniq.com" className="text-gray-300 hover:text-white transition">hello@tre1techniq.com</a></li>
+              <li><a href="mailto:info@tre1techniq.com" className="text-gray-300 hover:text-white transition">info@tre1techniq.com</a></li>
               <li className="text-gray-300">By appointment only</li>
             </ul>
             <div className="mt-4 flex space-x-4">
@@ -50,10 +52,16 @@ export default function Footer() {
             </div>
           </div>
         </div>
+
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-white mb-4">Automation Insights</h3>
+          <p className="text-gray-300 mb-4">Get weekly tips to streamline your business</p>
+          <NewsletterForm />
+        </div>
         
         <div className="mt-8 border-t border-gray-800 pt-8">
           <p className="text-center text-gray-400 text-sm">
-            © {new Date().getFullYear()} (c) 2026Tre1 TechnIQ Automation. All rights reserved.
+            © {new Date().getFullYear()} Tre1 TechnIQ Automation. All rights reserved.
           </p>
         </div>
       </div>

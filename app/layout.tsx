@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { GoogleAnalytics } from '@next/third-parties/google'
 // @ts-ignore: allow importing global CSS without type declarations
 import './globals.css'
 
@@ -22,6 +23,7 @@ export default function RootLayout({
           {children}
         </main>
       </body>
+      <GoogleAnalytics gaId="G-4HFY92S3VP" />
     </html>
   )
 }

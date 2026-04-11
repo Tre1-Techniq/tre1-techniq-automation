@@ -1,124 +1,199 @@
-import Header from '../components/Header'
-import Footer from '../components/Footer'
-import LeadForm from '../components/LeadForm'
-import { ArrowRightIcon, ClockIcon, ChartBarIcon, UserGroupIcon } from '@heroicons/react/24/outline'
+// app/page.tsx - COMPLETE WITH HEADER & FOOTER
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import Link from 'next/link'
+import { 
+  ArrowRightIcon,
+  ChartBarIcon,
+  ClockIcon,
+  CogIcon,
+  UserGroupIcon,
+  LightBulbIcon,
+  CheckCircleIcon
+} from '@heroicons/react/24/outline'
 
 export default function Home() {
-  const industries = [
-    { name: 'Real Estate Teams', description: 'Lead qualification, scheduling, follow-up automation' },
-    { name: 'Local Service Businesses', description: 'Appointment booking, customer communication' },
-    { name: 'Clinics & Med Spas', description: 'Patient intake, scheduling, follow-up care' },
-    { name: 'Law Firms', description: 'Client intake, document management, billing' },
-  ]
-
-  const automations = [
-    { name: 'Lead Follow-Up', description: 'Instant response to new inquiries', hours: 5 },
-    { name: 'Scheduling', description: 'Automated calendar booking', hours: 3 },
-    { name: 'Reporting', description: 'Weekly performance dashboards', hours: 2 },
-    { name: 'Client Intake', description: 'Streamlined onboarding forms', hours: 4 },
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-tre1-light to-white">
+    <div className="min-h-screen flex flex-col">
       <Header />
       
-      {/* Hero Section */}
-      <section className="px-4 py-20 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center">
-          <h1 className="text-4xl font-display font-bold tracking-tight text-tre1-dark sm:text-5xl md:text-6xl">
-            Automate Your Workflows.
-            <span className="block text-tre1-teal">Reclaim Focus.</span>
-          </h1>
-          <p className="mt-6 text-xl text-tre1-gray max-w-3xl mx-auto">
-            AI-driven systems that reduce admin time and accelerate response for growing businesses.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="/audit"
-              className="inline-flex items-center justify-center rounded-lg bg-tre1-orange px-8 py-3 text-base font-semibold text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-            >
-              Book a Workflow Audit
-              <ArrowRightIcon className="ml-2 h-5 w-5" />
-            </a>
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center justify-center rounded-lg border border-tre1-teal px-8 py-3 text-base font-semibold text-tre1-teal hover:bg-tre1-teal hover:text-white focus:outline-none focus:ring-2 focus:ring-tre1-teal focus:ring-offset-2"
-            >
-              How It Works
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits */}
-      <section className="px-4 py-16 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center p-6 rounded-xl bg-white shadow-sm">
-            <ClockIcon className="h-12 w-12 text-tre1-teal mx-auto" />
-            <h3 className="mt-4 text-xl font-semibold text-tre1-dark">Save Time</h3>
-            <p className="mt-2 text-tre1-gray">Recover 10+ hours per week with intelligent automation</p>
-          </div>
-          <div className="text-center p-6 rounded-xl bg-white shadow-sm">
-            <ChartBarIcon className="h-12 w-12 text-tre1-teal mx-auto" />
-            <h3 className="mt-4 text-xl font-semibold text-tre1-dark">Ensure Consistency</h3>
-            <p className="mt-2 text-tre1-gray">Never miss a lead or task hand-off with automated workflows</p>
-          </div>
-          <div className="text-center p-6 rounded-xl bg-white shadow-sm">
-            <UserGroupIcon className="h-12 w-12 text-tre1-teal mx-auto" />
-            <h3 className="mt-4 text-xl font-semibold text-tre1-dark">Scale Smarter</h3>
-            <p className="mt-2 text-tre1-gray">Grow operations without increasing overhead or headcount</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Who We Help */}
-      <section className="px-4 py-16 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-center text-tre1-dark mb-12">Practical Automations Built For:</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {industries.map((industry) => (
-            <div key={industry.name} className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-semibold text-tre1-dark">{industry.name}</h3>
-              <p className="mt-2 text-sm text-tre1-gray">{industry.description}</p>
-              <a href="/audit" className="mt-4 inline-block text-sm font-medium text-tre1-teal hover:text-teal-700">
-                Get audit →
-              </a>
+      <main className="flex-grow">
+        {/* Hero */}
+        <div className="bg-gradient-to-r from-tre1-teal to-teal-600 text-white">
+          <div className="max-w-7xl mx-auto px-4 py-24 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+                Work Smarter, Not Harder
+              </h1>
+              <p className="text-xl md:text-2xl opacity-90 max-w-3xl mx-auto mb-10">
+                Tre1 TechnIQ automates repetitive tasks so you can focus on growing your business.
+              </p>
+              <Link
+                href="/audit"
+                className="inline-flex items-center bg-white text-tre1-teal font-bold text-lg px-8 py-4 rounded-lg hover:bg-gray-50 transition shadow-lg"
+              >
+                Get Free Automation Audit
+                <ArrowRightIcon className="ml-2 h-5 w-5" />
+              </Link>
             </div>
-          ))}
+          </div>
         </div>
-      </section>
 
-      {/* What We Automate */}
-      <section className="px-4 py-16 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="how-it-works">
-        <h2 className="text-3xl font-bold text-center text-tre1-dark mb-12">Simplify Your Most Repetitive Workflows</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {automations.map((auto) => (
-            <div key={auto.name} className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold text-tre1-dark">{auto.name}</h3>
-                  <p className="mt-2 text-sm text-tre1-gray">{auto.description}</p>
-                </div>
-                <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                  {auto.hours}h/week saved
-                </span>
+        {/* Stats */}
+        <div className="bg-gray-50 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-tre1-teal mb-2">48h</div>
+                <div className="text-gray-600">Audit Turnaround</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-tre1-orange mb-2">40%</div>
+                <div className="text-gray-600">Average Time Saved</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-tre1-dark mb-2">100+</div>
+                <div className="text-gray-600">Businesses Automated</div>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA Section with Lead Form */}
-      <section className="px-4 py-20 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-        <div className="bg-gradient-to-r from-tre1-teal to-teal-600 rounded-2xl p-8 md:p-12 text-center text-white">
-          <h2 className="text-3xl font-bold mb-4">Identify Your Top 3 Automation Opportunities</h2>
-          <p className="text-teal-100 mb-8">
-            Get a free 15-minute workflow audit to discover where automation can save you the most time.
-          </p>
-          <div className="max-w-md mx-auto">
-            <LeadForm />
           </div>
         </div>
-      </section>
+
+        {/* Features */}
+        <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              How We Help Your Business
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              From lead capture to client onboarding, we automate the tedious so you can focus on the strategic.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-tre1-teal/10 rounded-full mb-6">
+                <ChartBarIcon className="h-7 w-7 text-tre1-teal" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Workflow Analysis</h3>
+              <p className="text-gray-600">
+                We identify bottlenecks and automation opportunities in your current processes.
+              </p>
+            </div>
+
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-tre1-orange/10 rounded-full mb-6">
+                <CogIcon className="h-7 w-7 text-tre1-orange" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Custom Automation</h3>
+              <p className="text-gray-600">
+                Build tailored automations that integrate with your existing tools and workflows.
+              </p>
+            </div>
+
+            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-tre1-dark/10 rounded-full mb-6">
+                <UserGroupIcon className="h-7 w-7 text-tre1-dark" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Team Training</h3>
+              <p className="text-gray-600">
+                We train your team to use and maintain the automations for long-term success.
+              </p>
+            </div>
+          </div>
+
+          {/* Industries */}
+          <div className="mt-20">
+            <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+              Industries We Serve
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {['Real Estate', 'Legal', 'Medical/Dental', 'HVAC', 'Plumbing', 'Auto Repair', 'Consulting', 'Digital Creators'].map((industry) => (
+                <div key={industry} className="bg-gray-50 p-4 rounded-lg text-center">
+                  <div className="font-medium text-gray-900">{industry}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Benefits */}
+          <div className="mt-20 bg-gradient-to-r from-tre1-teal/5 to-teal-600/5 rounded-2xl p-8">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-gray-900">
+                Why Choose Tre1 TechnIQ
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <LightBulbIcon className="h-6 w-6 text-tre1-teal" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900">Expert-Led Strategy</h4>
+                  <p className="text-gray-600 mt-1">Our team of automation experts designs solutions specifically for your business needs.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <ClockIcon className="h-6 w-6 text-tre1-orange" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900">Fast Implementation</h4>
+                  <p className="text-gray-600 mt-1">Get your automations up and running in days, not months.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900">Ongoing Support</h4>
+                  <p className="text-gray-600 mt-1">We provide continuous support and optimization as your business grows.</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <ChartBarIcon className="h-6 w-6 text-tre1-dark" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900">Measurable Results</h4>
+                  <p className="text-gray-600 mt-1">Track time saved, errors reduced, and revenue increased with clear metrics.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Final CTA */}
+          <div className="mt-20 text-center">
+            <div className="bg-gradient-to-r from-tre1-teal to-teal-600 rounded-2xl p-10 text-white">
+              <h3 className="text-2xl md:text-3xl font-bold mb-6">
+                Ready to Transform Your Workflow?
+              </h3>
+              <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
+                Get a free automation audit and discover how much time and money you can save.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/audit"
+                  className="inline-flex items-center justify-center bg-white text-tre1-teal font-bold text-lg px-10 py-4 rounded-lg hover:bg-gray-50 transition shadow-lg"
+                >
+                  Start Free Audit
+                  <ArrowRightIcon className="ml-2 h-5 w-5" />
+                </Link>
+                <Link
+                  href="/about-lite"
+                  className="inline-flex items-center justify-center bg-transparent border-2 border-white text-white font-bold text-lg px-10 py-4 rounded-lg hover:bg-white/10 transition"
+                >
+                  Learn More
+                </Link>
+              </div>
+              <p className="mt-6 text-white/80 text-sm">
+                No credit card required • Get results in 48 hours • No obligation
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
 
       <Footer />
     </div>

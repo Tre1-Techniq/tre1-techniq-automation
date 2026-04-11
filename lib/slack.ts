@@ -1,90 +1,13 @@
-export async function sendSlackNotification(lead: any) {
+// lib/slack.ts - UPDATED WITH LOGGING
+export async function sendSlackNotification(payload: any) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL
   
   if (!webhookUrl) {
-    console.warn('SLACK_WEBHOOK_URL not configured')
+    console.warn('SLACK_WEBHOOK_URL not set. Skipping Slack notification.')
     return
   }
 
-  const message = {
-    username: 'Tre1 TechnIQ Bot',
-    icon_emoji: '⚡',
-    blocks: [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: '🎯 New Workflow Audit Request',
-          emoji: true
-        }
-      },
-      {
-        type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Name:*\n${lead.name}`
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Company:*\n${lead.company || 'Not provided'}`
-          }
-        ]
-      },
-      {
-        type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Email:*\n${lead.email}`
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Industry:*\n${lead.business_type}`
-          }
-        ]
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `*Pain Point:*\n${lead.pain_point || 'Not specified'}`
-        }
-      },
-      {
-        type: 'actions',
-        elements: [
-          {
-            type: 'button',
-            text: {
-              type: 'plain_text',
-              text: 'View in Dashboard',
-              emoji: true
-            },
-            url: `https://app.supabase.com/project/${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('.')[0]}/editor/leads`
-          },
-          {
-            type: 'button',
-            text: {
-              type: 'plain_text',
-              text: 'Send Email',
-              emoji: true
-            },
-            url: `mailto:${lead.email}?subject=Tre1%20TechnIQ%20Workflow%20Audit&body=Hi%20${encodeURIComponent(lead.name)}`
-          }
-        ]
-      },
-      {
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: `🆔 ${lead.id} | 📅 ${new Date().toLocaleDateString()}`
-          }
-        ]
-      }
-    ]
-  }
+  console.log('📤 Sending Slack notification payload:', JSON.stringify(payload, null, 2))
 
   try {
     const response = await fetch(webhookUrl, {
@@ -92,69 +15,21 @@ export async function sendSlackNotification(lead: any) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(message),
+      body: JSON.stringify(payload),
     })
 
+    console.log('📨 Slack response status:', response.status)
+    
     if (!response.ok) {
-      throw new Error(`Slack API error: ${response.statusText}`)
+      const errorText = await response.text()
+      console.error('❌ Slack notification failed:', errorText)
+      throw new Error(`Slack error: ${response.status} ${errorText}`)
     }
-
-    console.log('Slack notification sent successfully')
-    return response
+    
+    console.log('✅ Slack notification sent successfully')
+    
   } catch (error) {
-    console.error('Failed to send Slack notification:', error)
+    console.error('❌ Error sending Slack notification:', error)
     throw error
-  }
-}
-
-// Optional: Function for audit completion notifications
-export async function sendAuditCompletedNotification(audit: any, lead: any) {
-  const webhookUrl = process.env.SLACK_WEBHOOK_URL
-  
-  if (!webhookUrl) return
-
-  const message = {
-    username: 'Tre1 TechnIQ Bot',
-    icon_emoji: '✅',
-    blocks: [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: '✅ Audit Completed',
-          emoji: true
-        }
-      },
-      {
-        type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Client:*\n${lead.name}`
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Company:*\n${lead.company || 'N/A'}`
-          }
-        ]
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `*Next Step:* Schedule follow-up call to discuss implementation`
-        }
-      }
-    ]
-  }
-
-  try {
-    await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(message),
-    })
-  } catch (error) {
-    console.error('Failed to send audit completion notification:', error)
   }
 }

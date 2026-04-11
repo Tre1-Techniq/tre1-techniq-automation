@@ -1,6 +1,7 @@
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import LeadForm from '@/components/LeadForm'
+//import LeadForm from '@/components/LeadForm'
+import MultiStepAuditForm from '@/components/MultiStepAuditForm'
 
 export default function AuditPage() {
   return (
@@ -73,7 +74,7 @@ export default function AuditPage() {
           
           <div>
             <div className="sticky top-24">
-              <LeadForm />
+              <MultiStepAuditForm />
             </div>
           </div>
         </div>
