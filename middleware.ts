@@ -1,4 +1,4 @@
-// middleware.ts - COMPLETE VERSION
+// middleware.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -20,18 +20,13 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: any) {
-          // Update request cookies
+          // Update the request cookies
           request.cookies.set({
             name,
             value,
             ...options,
           })
-          // Update response cookies
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
+          // Update the response cookies
           response.cookies.set({
             name,
             value,
@@ -39,18 +34,13 @@ export async function middleware(request: NextRequest) {
           })
         },
         remove(name: string, options: any) {
-          // Update request cookies
+          // Update the request cookies
           request.cookies.set({
             name,
             value: '',
             ...options,
           })
-          // Update response cookies
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
+          // Update the response cookies
           response.cookies.set({
             name,
             value: '',
@@ -64,37 +54,29 @@ export async function middleware(request: NextRequest) {
   // Refresh session if expired
   await supabase.auth.getSession()
 
-  // Get current path
-  const path = request.nextUrl.pathname
-
-  // Get session
-  const { data: { session } } = await supabase.auth.getSession()
-
   // Protect /members routes
-  if (path.startsWith('/members') && !session) {
-    const redirectUrl = new URL('/login', request.url)
-    redirectUrl.searchParams.set('redirectTo', path)
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  // Redirect if logged in and trying to access auth pages
-  if ((path === '/login' || path === '/signup') && session) {
-    return NextResponse.redirect(new URL('/members', request.url))
+  if (request.nextUrl.pathname.startsWith('/members')) {
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session) {
+      // Redirect to login with redirect URL
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   return response
 }
 
-
-
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
+     * Match all request paths except for the ones starting with:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder files
+     * - public folder
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

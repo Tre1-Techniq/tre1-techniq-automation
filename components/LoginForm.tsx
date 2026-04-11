@@ -57,7 +57,7 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
       provider: 'github',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: 'read:user user:email', // Request user info and email
+        scopes: 'read:user user:email',
       }
     })
     
@@ -67,7 +67,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
       setLoading(false)
       setActiveMethod(null)
     }
-    // No need to setLoading(false) here - redirect happens automatically
   }
 
   // Email/Password Login
@@ -105,7 +104,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
       console.log('✅ Email login successful!')
       console.log('User:', data.user?.email)
       
-      // Force redirect to members area
       window.location.href = redirectTo
       
     } catch (err: any) {
@@ -116,7 +114,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
     }
   }
 
-  // Get loading text based on active method
   const getLoadingText = () => {
     if (!activeMethod) return 'Loading...'
     
@@ -131,13 +128,11 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-lg">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-600 mt-2">Sign in to your Tre1 TechnIQ account</p>
         </div>
 
-        {/* Social Login Buttons */}
         <div className="space-y-3 mb-6">
           <button
             onClick={handleGoogleLogin}
@@ -169,7 +164,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
           </button>
         </div>
 
-        {/* Divider */}
         <div className="relative my-8">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300"></div>
@@ -179,7 +173,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
           </div>
         </div>
 
-        {/* Email/Password Form */}
         <form onSubmit={handleEmailLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -211,7 +204,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
             />
           </div>
           
-          {/* Messages */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg animate-fadeIn">
               <p className="text-red-700 text-sm">{error}</p>
@@ -224,7 +216,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
             </div>
           )}
           
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -234,7 +225,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
           </button>
         </form>
 
-        {/* Loading Overlay */}
         {loading && activeMethod && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-xl shadow-xl text-center">
@@ -245,7 +235,6 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
           </div>
         )}
 
-        {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>Don't have an account? <a href="/signup" className="text-tre1-teal hover:underline font-medium">Sign up</a></p>
           <p className="mt-2 text-xs">By continuing, you agree to our Terms and Privacy Policy</p>

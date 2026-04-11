@@ -28,8 +28,16 @@ export async function GET(request: Request) {
       }
     )
 
-    await supabase.auth.exchangeCodeForSession(code)
+    // Exchange the code for a session
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (error) {
+      console.error('Callback error:', error)
+      // Redirect to login with error
+      return NextResponse.redirect(`${requestUrl.origin}/login?error=${encodeURIComponent(error.message)}`)
+    }
   }
 
+  // Success! Redirect to members area
   return NextResponse.redirect(`${requestUrl.origin}/members`)
 }
