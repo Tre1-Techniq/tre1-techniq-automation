@@ -1,6 +1,6 @@
-// app/login/page.tsx - COMPLETE FIX WITH COUNTDOWN
+// app/login/page.tsx - COMPLETE ERROR-FREE VERSION
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -12,34 +12,26 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false)
   const [countdown, setCountdown] = useState(5)
   const [redirectAttempted, setRedirectAttempted] = useState(false)
+  
   const router = useRouter()
   const searchParams = useSearchParams()
   
   const redirectTo = searchParams.get('redirectTo') || '/members'
-  const countdownRef = useRef<NodeJS.Timeout>()
-  const redirectRef = useRef<NodeJS.Timeout>()
 
   // Countdown timer
   useEffect(() => {
     if (success && countdown > 0) {
-      countdownRef.current = setInterval(() => {
+      const timer = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
-            clearInterval(countdownRef.current)
+            clearInterval(timer)
             return 0
           }
           return prev - 1
         })
       }, 1000)
-    }
-    
-    return () => {
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current)
-      }
-      if (redirectRef.current) {
-        clearTimeout(redirectRef.current)
-      }
+      
+      return () => clearInterval(timer)
     }
   }, [success])
 
@@ -50,35 +42,11 @@ export default function LoginPage() {
     }
   }, [success, countdown, redirectAttempted])
 
-  // Listen for auth state changes
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event)
-        
-        if (event === 'SIGNED_IN' && success) {
-          console.log('SIGNED_IN event confirmed')
-          
-          // Schedule redirect for 3 seconds after auth event
-          redirectRef.current = setTimeout(() => {
-            if (!redirectAttempted) {
-              performRedirect()
-            }
-          }, 3000)
-        }
-      }
-    )
-    
-    return () => subscription.unsubscribe()
-  }, [success, redirectAttempted])
-
   const performRedirect = () => {
     if (redirectAttempted) return
     
     console.log('🔄 Performing redirect to:', redirectTo)
     setRedirectAttempted(true)
-    
-    // Use replace to prevent back button issues
     window.location.replace(redirectTo)
   }
 
@@ -109,12 +77,15 @@ export default function LoginPage() {
       console.log('✅ Login successful!')
       console.log('User:', data.user?.email)
       
-      // Set success state
       setSuccess(true)
       setLoading(false)
       
-      // Don't redirect immediately - let the timers handle it
-      console.log('Auth successful, waiting for redirect...')
+      // Schedule redirect
+      setTimeout(() => {
+        if (!redirectAttempted) {
+          performRedirect()
+        }
+      }, 3000)
       
     } catch (err: any) {
       console.error('Login error:', err)
@@ -179,15 +150,6 @@ export default function LoginPage() {
                 ← Back to Login
               </button>
             </div>
-            
-            <div className="mt-4 pt-4 border-t border-green-200">
-              <p className="text-xs text-green-600">
-                If redirect fails, try:
-                <br />1. Clearing browser cache
-                <br />2. Using Incognito mode
-                <br />3. Different browser
-              </p>
-            </div>
           </div>
         ) : (
           <form onSubmit={handleLogin} className="space-y-4">
@@ -235,14 +197,6 @@ export default function LoginPage() {
             </button>
           </form>
         )}
-        
-        <div className="mt-6 p-3 bg-gray-100 rounded-lg">
-          <p className="text-sm font-semibold">Status:</p>
-          <p className="text-xs mt-1">
-            {success ? `✅ Logged in - Redirecting to ${redirectTo}` : '⏳ Not logged in'}
-          </p>
-          <p className="text-xs">Middleware active (307 redirect detected)</p>
-        </div>
       </div>
     </div>
   )
