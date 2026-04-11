@@ -1,155 +1,142 @@
+// components/LoginForm.tsx - UPDATED WITH OAUTH
 'use client'
-
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
-export default function LeadForm() {
+interface LoginFormProps {
+  redirectTo: string
+}
+
+export default function LoginForm({ redirectTo }: LoginFormProps) {
+  const [email, setEmail] = useState('tre1.techniq@gmail.com')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    company: '',
-    email: '',
-    businessType: '',
-    painPoint: '',
-  })
 
-  const businessTypes = [
-    { value: '', label: 'Select your industry' },
-    { value: 'real_estate', label: 'Real Estate' },
-    { value: 'local_services', label: 'Local Services' },
-    { value: 'clinics', label: 'Clinics & Medical' },
-    { value: 'law_firms', label: 'Law Firms' },
-    { value: 'other', label: 'Other' },
-  ]
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+  // OAuth Login (Recommended with OAuth Server enabled)
+  const handleOAuthLogin = async () => {
+    console.log('Starting OAuth login...')
+    
+    const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google', // or use 'email' provider
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          // You can pass custom parameters if needed
+        }
+      }
+    })
+    
+    if (oauthError) {
+      console.error('OAuth error:', oauthError)
+      setError(`OAuth error: ${oauthError.message}`)
+    } else {
+      console.log('OAuth redirect initiated:', data)
+      // The redirect happens automatically
+    }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Fallback: Email/Password (might not work with OAuth Server)
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
+    console.log('Email login attempt (may not work with OAuth Server)...')
+    
+    setLoading(true)
+    setError('')
 
     try {
-      const response = await fetch('/api/lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
       })
 
-      if (response.ok) {
-        router.push('/thank-you')
-      } else {
-        const error = await response.json()
-        alert(`Error: ${error.error || 'Failed to submit'}`)
+      console.log('Email login response:', { data, error: authError })
+
+      if (authError) {
+        setError(`Email login failed: ${authError.message}`)
+        setLoading(false)
+        return
       }
-    } catch (error) {
-      console.error('Submission error:', error)
-      alert('Network error. Please try again.')
-    } finally {
-      setIsSubmitting(false)
+
+      console.log('✅ Email login successful!')
+      console.log('User:', data.user?.email)
+      
+      // Force redirect
+      window.location.href = redirectTo
+      
+    } catch (err: any) {
+      console.error('Login error:', err)
+      setError(err.message || 'Login failed')
+      setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-xl shadow-lg">
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-          Name *
-        </label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          required
-          value={formData.name}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tre1-teal focus:ring-tre1-teal p-3 border"
-          placeholder="Your name"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="company" className="block text-sm font-medium text-gray-700">
-          Company
-        </label>
-        <input
-          type="text"
-          id="company"
-          name="company"
-          value={formData.company}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tre1-teal focus:ring-tre1-teal p-3 border"
-          placeholder="Your company name"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email *
-        </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          required
-          value={formData.email}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tre1-teal focus:ring-tre1-teal p-3 border"
-          placeholder="you@company.com"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="businessType" className="block text-sm font-medium text-gray-700">
-          Business Type *
-        </label>
-        <select
-          id="businessType"
-          name="businessType"
-          required
-          value={formData.businessType}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tre1-teal focus:ring-tre1-teal p-3 border"
-        >
-          {businessTypes.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="painPoint" className="block text-sm font-medium text-gray-700">
-          Do you have repetitive tasks that take too much of your time?
-          <span className="text-gray-500 font-normal"> (Optional)</span>
-        </label>
-        <textarea
-          id="painPoint"
-          name="painPoint"
-          rows={3}
-          value={formData.painPoint}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-tre1-teal focus:ring-tre1-teal p-3 border"
-          placeholder="e.g., manually following up with leads, scheduling appointments, team coordination..."
-        />
-      </div>
-
-      <div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="max-w-md w-full p-8">
+        <h1 className="text-2xl font-bold mb-6">Login</h1>
+        
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-800">
+            OAuth Server is enabled. Try OAuth login first.
+          </p>
+        </div>
+        
+        {/* OAuth Login Button */}
         <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-tre1-orange hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleOAuthLogin}
+          disabled={loading}
+          className="w-full mb-4 p-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
         >
-          {isSubmitting ? 'Submitting...' : 'Book My Free Audit'}
+          Continue with OAuth (Recommended)
         </button>
-        <p className="mt-2 text-xs text-gray-500 text-center">
-          By submitting, you agree to our 15-minute workflow audit call.
-        </p>
+        
+        <div className="text-center text-gray-500 my-4">OR</div>
+        
+        {/* Email/Password Form (Fallback) */}
+        <form onSubmit={handleEmailLogin} className="space-y-4">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-3 border rounded-lg"
+            placeholder="Email"
+            disabled={loading}
+            required
+          />
+          
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-3 border rounded-lg"
+            placeholder="Password"
+            disabled={loading}
+            required
+          />
+          
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700">{error}</p>
+            </div>
+          )}
+          
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full p-3 bg-blue-600 text-white rounded-lg font-semibold disabled:opacity-50"
+          >
+            {loading ? 'Logging in...' : 'Login with Email'}
+          </button>
+        </form>
+        
+        <div className="mt-6 text-sm text-gray-600">
+          <p>Client ID: {process.env.NEXT_PUBLIC_SUPABASE_OAUTH_CLIENT_ID ? 'Set' : 'Not set'}</p>
+          <p>Open browser console (F12) for debug messages</p>
+        </div>
       </div>
-    </form>
+    </div>
   )
 }
