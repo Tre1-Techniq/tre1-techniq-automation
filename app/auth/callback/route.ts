@@ -25,7 +25,7 @@ export async function GET(request: Request) {
           remove(name: string, options: any) {
             cookieStore.set({ name, value: '', ...options })
           },
-        },
+        }
       }
     )
 
