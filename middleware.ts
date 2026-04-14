@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if ((path === '/login' || path === '/signup') && isAuthenticated) {
+  if ((path === '/login') && isAuthenticated) {
     return NextResponse.redirect(new URL('/members', request.url))
   }
 
