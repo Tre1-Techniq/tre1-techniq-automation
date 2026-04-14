@@ -69,8 +69,8 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
               <span className="text-2xl font-bold text-gray-900">Tre1 TechnIQ</span>
             </div>
           </Link>
-          <h1 className="mt-6 text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="mt-2 text-gray-600">Sign in to your Tre1 TechnIQ account</p>
+          <h1 className="mt-6 text-3xl font-bold text-gray-900">Member Portal</h1>
+          <p className="mt-2 text-gray-600">Access exclusive Tre1 TechnIQ content and features.</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
@@ -123,11 +123,8 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
         </div>
 
         <div className="text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/signup" className="font-semibold text-tre1-teal hover:text-teal-600">
-              Sign up here
-            </Link>
+          <p className="text-gray-600 text-sm">
+            Continue with Google or GitHub.
           </p>
         </div>
       </div>
