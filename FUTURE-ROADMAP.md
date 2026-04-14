@@ -31,6 +31,22 @@ Strategic Notes:
 
 ---
 
+## Authentication Expansion
+
+### Apple OAuth
+Add Apple OAuth as a post-Beta authentication provider expansion.
+
+Reasoning:
+- Expands mainstream user coverage alongside Google
+- Improves accessibility for Apple-first users
+- Useful for broader consumer/business audience growth
+- Better added after core auth/session flow is fully stable in Beta 1
+
+Notes:
+- Requires Apple-specific web auth configuration
+- Should be tested against production/custom-domain environment
+- Not required for Beta 1 validation
+
 ## Community / Retention Expansion
 - Slack/Discord gated communities
 - Live training/events

@@ -7,6 +7,8 @@ import { createClient } from '@supabase/supabase-js'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next')
+  const safeNext = next && next.startsWith('/') ? next : '/members'
 
   if (code) {
     const cookieStore = cookies()
@@ -81,5 +83,5 @@ export async function GET(request: Request) {
   }
 
   // Success! Redirect to members area
-  return NextResponse.redirect(`${requestUrl.origin}/members`)
+  return NextResponse.redirect(`${requestUrl.origin}${safeNext}`)
 }

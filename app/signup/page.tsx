@@ -2,7 +2,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 
 export default function SignupPage() {
   const [loading, setLoading] = useState(false)
@@ -14,6 +14,8 @@ export default function SignupPage() {
     setActiveMethod('google')
     setLoading(true)
     setError('')
+
+    const supabase = createClient()
     
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -34,6 +36,8 @@ export default function SignupPage() {
     setActiveMethod('github')
     setLoading(true)
     setError('')
+
+    const supabase = createClient()
     
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'github',

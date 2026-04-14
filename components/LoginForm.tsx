@@ -1,7 +1,7 @@
 // components/LoginForm.tsx - OAUTH ONLY
 'use client'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
 interface LoginFormProps {
@@ -18,11 +18,13 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
     setActiveMethod('google')
     setLoading(true)
     setError('')
+
+    const supabase = createClient()
     
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo || '/members')}`,
       }
     })
     
@@ -38,11 +40,13 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
     setActiveMethod('github')
     setLoading(true)
     setError('')
+
+    const supabase = createClient()
     
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo || '/members')}`,
       }
     })
     
