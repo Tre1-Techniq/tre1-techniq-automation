@@ -46,12 +46,8 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-<<<<<<< HEAD
-        redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: 'read:user user:email', // Include scopes if needed
-=======
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo || '/members')}`,
->>>>>>> dev
+      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo || '/members')}`,
+      scopes: 'read:user user:email',
       }
     })
     
