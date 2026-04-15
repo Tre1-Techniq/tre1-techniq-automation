@@ -2,6 +2,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import DownloadButton from '@/components/DownloadButton'
 import Link from 'next/link'
 import { 
   DocumentTextIcon, 
@@ -276,26 +277,16 @@ export default async function LibraryPage() {
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center">
-                        <button
-                          onClick={() => {
-                            // Simulate download
-                            alert(`Downloading: ${pdf.title}\n\nThis would trigger a real download in production.`)
-                          }}
-                          className="flex items-center space-x-2 px-4 py-2 bg-tre1-teal text-white rounded-lg hover:bg-teal-600 transition"
-                        >
-                          <ArrowDownTrayIcon className="h-4 w-4" />
-                          <span>Download</span>
-                        </button>
+                        <div className="flex items-center">
+                          <DownloadButton title={pdf.title} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
       
       {/* Empty State */}

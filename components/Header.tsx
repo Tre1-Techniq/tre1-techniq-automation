@@ -17,7 +17,6 @@ export default function Header() {
             <Link href="/audit" className="text-gray-700 hover:text-tre1-teal">Free Audit</Link>
             <Link href="/about-lite" className="text-gray-700 hover:text-tre1-teal">About</Link>
             <Link href="/members" className="text-gray-700 hover:text-tre1-teal">Members</Link>
-            <Link href="/signup" className="text-gray-700 hover:text-tre1-teal">Sign Up</Link>
             <a
               href="/audit"
               className="rounded-lg bg-tre1-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition"

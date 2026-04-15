@@ -1,7 +1,7 @@
 // components/LoginForm.tsx - OAUTH ONLY
 'use client'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
 interface LoginFormProps {
@@ -18,11 +18,13 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
     setActiveMethod('google')
     setLoading(true)
     setError('')
+
+    const supabase = createClient()
     
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo || '/members')}`,
       }
     })
     
@@ -38,12 +40,18 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
     setActiveMethod('github')
     setLoading(true)
     setError('')
+
+    const supabase = createClient()
     
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
+<<<<<<< HEAD
         redirectTo: `${window.location.origin}/auth/callback`,
         scopes: 'read:user user:email', // Include scopes if needed
+=======
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo || '/members')}`,
+>>>>>>> dev
       }
     })
     
@@ -66,8 +74,8 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
               <span className="text-2xl font-bold text-gray-900">Tre1 TechnIQ</span>
             </div>
           </Link>
-          <h1 className="mt-6 text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="mt-2 text-gray-600">Sign in to your Tre1 TechnIQ account</p>
+          <h1 className="mt-6 text-3xl font-bold text-gray-900">Member Portal</h1>
+          <p className="mt-2 text-gray-600">Access exclusive Tre1 TechnIQ content and features.</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
@@ -116,11 +124,8 @@ export default function LoginForm({ redirectTo }: LoginFormProps) {
         </div>
 
         <div className="text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/signup" className="font-semibold text-tre1-teal hover:text-teal-600">
-              Sign up here
-            </Link>
+          <p className="text-gray-600 text-sm">
+            Continue with Google or GitHub.
           </p>
         </div>
       </div>
