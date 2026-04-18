@@ -517,16 +517,17 @@ export default function MultiStepAuditForm() {
                       Preferred Contact Method *
                     </label>
                     <select
-                      value={formData.preferredContact || ''}
-                      onChange={(e) => handleInputChange('preferredContact', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-tre1-teal focus:border-transparent transition"
-                      required
-                    >
-                      <option value="">Select method</option>
-                      {steps[3].fields[3].options?.map(option => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
+                    value={formData.preferredContact || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, preferredContact: e.target.value })
+                    }
+                    className="w-full p-3 border rounded-lg"
+                  >
+                    <option value="">Select preferred contact method</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                    <option value="either">Either</option>
+                  </select>
                   </div>
                 </div>
               )}

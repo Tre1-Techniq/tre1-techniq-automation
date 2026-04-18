@@ -1,35 +1,20 @@
-// lib/slack.ts - UPDATED WITH LOGGING
-export async function sendSlackNotification(payload: any) {
+export async function sendSlackMessage(payload: Record<string, unknown>) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL
-  
+
   if (!webhookUrl) {
-    console.warn('SLACK_WEBHOOK_URL not set. Skipping Slack notification.')
-    return
+    throw new Error('SLACK_WEBHOOK_URL is not set')
   }
 
-  console.log('📤 Sending Slack notification payload:', JSON.stringify(payload, null, 2))
+  const response = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
 
-  try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    })
-
-    console.log('📨 Slack response status:', response.status)
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Slack notification failed:', errorText)
-      throw new Error(`Slack error: ${response.status} ${errorText}`)
-    }
-    
-    console.log('✅ Slack notification sent successfully')
-    
-  } catch (error) {
-    console.error('❌ Error sending Slack notification:', error)
-    throw error
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(`Slack webhook failed: ${response.status} ${text}`)
   }
 }
