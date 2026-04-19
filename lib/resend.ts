@@ -120,8 +120,101 @@ export async function sendAuditCompletedEmail(
   company: string,
   auditId: string
 ) {
-  console.log('📧 Audit completed email would be sent to:', to)
-  return { success: true, message: 'Placeholder for audit completed email' }
+  try {
+    const auditUrl = `${
+      process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    }/audit/access/${auditId}`
+
+    const { data, error } = await resend.emails.send({
+      from: 'Tre1 TechnIQ <success@tre1-techniq.com>',
+      to: [to],
+      subject: 'Your Automation Audit Is Ready - Tre1 TechnIQ',
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Audit Is Ready</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #00B5A5 0%, #008080 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button { display: inline-block; background: #00B5A5; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0; }
+          .highlight { background: #e6f7f5; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #00B5A5; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>✅ Your Automation Audit Is Ready</h1>
+        </div>
+        <div class="content">
+          <p>Hi <strong>${name}</strong>,</p>
+
+          <p>Your workflow automation audit for <strong>${company}</strong> has been marked complete.</p>
+
+          <div class="highlight">
+            <p><strong>Your next-step audit access is ready.</strong></p>
+            <p>Use the secure link below to review your audit status and continue into the member platform.</p>
+          </div>
+
+          <p style="text-align:center;">
+            <a href="${auditUrl}" class="button">Review Your Audit</a>
+          </p>
+
+          <p>If the button above does not work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #00B5A5;">${auditUrl}</p>
+
+          <p><strong>What this means:</strong></p>
+          <ul>
+            <li>Your audit has advanced to the completed stage</li>
+            <li>Your request is now ready for follow-up and next-step action</li>
+            <li>You can continue into the secure member experience from the provided access point</li>
+          </ul>
+
+          <div class="footer">
+            <p>Best regards,<br><strong>The Tre1 TechnIQ Team</strong></p>
+            <p style="font-size: 12px; color: #999;">
+              Tre1 TechnIQ Automation<br>
+              <a href="https://tre1-techniq.com" style="color: #00B5A5;">tre1-techniq.com</a>
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+      `,
+      text: `
+Hi ${name},
+
+Your workflow automation audit for ${company} has been marked complete.
+
+Review your audit here:
+${auditUrl}
+
+What this means:
+- Your audit has advanced to the completed stage
+- Your request is now ready for follow-up and next-step action
+- You can continue into the secure member experience from the provided access point
+
+Best regards,
+The Tre1 TechnIQ Team
+
+tre1-techniq.com
+      `,
+    })
+
+    if (error) {
+      console.error('❌ Audit completed email error:', error)
+      return { success: false, error }
+    }
+
+    console.log('✅ Audit completed email sent to:', to)
+    return { success: true, data }
+  } catch (error) {
+    console.error('❌ Audit completed email send error:', error)
+    return { success: false, error }
+  }
 }
 
 export async function sendNewsletterWelcomeEmail(to: string) {
