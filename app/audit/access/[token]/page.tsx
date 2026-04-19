@@ -180,6 +180,42 @@ export default async function AuditAccessPage({ params }: PageProps) {
     )
   }
 
+  const submittedEmail =
+    typeof auditRequest.submitted_email === 'string'
+      ? auditRequest.submitted_email.trim().toLowerCase()
+      : null
+
+  if (submittedEmail) {
+    const { data: existingProfile, error: existingProfileError } = await supabaseAdmin
+      .from('profiles')
+      .select('contact_email, contact_email_verified_at')
+      .eq('id', user.id)
+      .single()
+
+    if (existingProfileError) {
+      console.error('Profile contact lookup error:', existingProfileError)
+    } else {
+      const existingContactEmail =
+        typeof existingProfile?.contact_email === 'string'
+          ? existingProfile.contact_email.trim().toLowerCase()
+          : null
+
+      if (!existingContactEmail) {
+        const { error: profileUpdateError } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            contact_email: submittedEmail,
+            contact_email_verified_at: now,
+          })
+          .eq('id', user.id)
+
+        if (profileUpdateError) {
+          console.error('Profile contact email update error:', profileUpdateError)
+        }
+      }
+    }
+  }
+
   const displayName =
     auditRequest.contact_name ||
     user.email ||
