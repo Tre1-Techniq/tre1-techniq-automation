@@ -45,7 +45,7 @@ interface Lead {
 
 ## Diagram (Optional)
 
-![System Overview](../assets/diagrams/01-diagram_system_architecture.png)
+![System Overview](./assets/diagrams/01-diagram_system_architecture.png)
 
 ## Key Takeaways
 
