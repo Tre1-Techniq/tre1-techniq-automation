@@ -35,16 +35,13 @@ export async function GET(
 
     const { data: profile, error: profileError } = await admin
       .from('profiles')
-      .select('tier, first_name, last_name, display_name, contact_email')
+      .select('tier, display_name, first_name, last_name, contact_email')
       .eq('id', user.id)
       .single()
 
     if (profileError) {
       console.error('Profile lookup error:', profileError)
-      return NextResponse.json(
-        { error: 'Failed to verify member profile' },
-        { status: 500 }
-      )
+      return NextResponse.redirect(new URL('/members/billing', request.url))
     }
 
     const { data: pdf, error: pdfError } = await admin
@@ -56,18 +53,17 @@ export async function GET(
 
     if (pdfError || !pdf) {
       console.error('PDF lookup error:', pdfError)
-      return NextResponse.json(
-        { error: 'PDF not found' },
-        { status: 404 }
-      )
+      return NextResponse.redirect(new URL('/members/library', request.url))
     }
 
     const userTier = profile?.tier || 'free'
     const userTierValue = tierRank[userTier] ?? 0
     const requiredTierValue = tierRank[pdf.required_tier] ?? 999
 
-    if (userTierValue < requiredTierValue) {
-      return NextResponse.redirect(new URL('/members/billing', request.url))
+    if (userTierValue >= requiredTierValue) {
+      return NextResponse.redirect(
+        new URL(`/api/pdfs/${pdf.slug}/download`, request.url)
+      )
     }
 
     const displayName =
@@ -76,72 +72,56 @@ export async function GET(
       user.email ||
       user.id
 
-    const { error: logError } = await admin.from('download_events').insert({
-      user_id: user.id,
-      pdf_id: pdf.id,
-      downloaded_at: new Date().toISOString(),
-      user_agent: request.headers.get('user-agent'),
-      source: 'members-library',
-    })
-
-    if (logError) {
-      console.warn('Download logging warning:', logError)
+    const metadata = {
+      pdf_slug: pdf.slug,
+      pdf_title: pdf.title,
+      required_tier: pdf.required_tier,
+      current_tier: userTier,
+      interest_tag: pdf.interest_tag || 'unknown',
+      source: 'members-library-locked-click',
     }
 
     const { error: signalError } = await admin.from('engagement_signals').insert({
       user_id: user.id,
-      source_type: 'pdf_download',
+      source_type: 'locked_pdf_click',
       source_id: pdf.id,
-      signal_type: 'interest_tag',
-      signal_value: pdf.interest_tag || 'unknown',
+      signal_type: 'upsell_intent',
+      signal_value: pdf.slug,
+      metadata,
     })
 
     if (signalError) {
-      console.warn('Engagement signal warning:', signalError)
+      console.warn('Locked click signal warning:', signalError)
     }
 
-    if (pdf.priority_level === 'high') {
-      const { error: highIntentError } = await admin.from('engagement_signals').insert({
-        user_id: user.id,
-        source_type: 'pdf_download',
-        source_id: pdf.id,
-        signal_type: 'high_intent_download',
-        signal_value: pdf.slug,
+    try {
+      await sendSlackMessage({
+        text: '🔒 Locked PDF click detected',
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: '*🔒 Locked PDF click detected*',
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              { type: 'mrkdwn', text: `*Name:*\n${displayName}` },
+              { type: 'mrkdwn', text: `*Email:*\n${profile?.contact_email || user.email || 'Not available'}` },
+              { type: 'mrkdwn', text: `*PDF:*\n${pdf.title}` },
+              { type: 'mrkdwn', text: `*Slug:*\n${pdf.slug}` },
+              { type: 'mrkdwn', text: `*Current Tier:*\n${userTier}` },
+              { type: 'mrkdwn', text: `*Required Tier:*\n${pdf.required_tier}` },
+              { type: 'mrkdwn', text: `*Interest Tag:*\n${pdf.interest_tag || 'unknown'}` },
+              { type: 'mrkdwn', text: `*Signal:*\nupsell_intent` },
+            ],
+          },
+        ],
       })
-
-      if (highIntentError) {
-        console.warn('High intent signal warning:', highIntentError)
-      }
-
-      try {
-        await sendSlackMessage({
-          text: '🔥 High-intent PDF download detected',
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: '*🔥 High-intent PDF download detected*',
-              },
-            },
-            {
-              type: 'section',
-              fields: [
-                { type: 'mrkdwn', text: `*Name:*\n${displayName}` },
-                { type: 'mrkdwn', text: `*Email:*\n${user.email || 'Not available'}` },
-                { type: 'mrkdwn', text: `*User ID:*\n${user.id}` },
-                { type: 'mrkdwn', text: `*PDF:*\n${pdf.title}` },
-                { type: 'mrkdwn', text: `*Slug:*\n${pdf.slug}` },
-                { type: 'mrkdwn', text: `*Interest Tag:*\n${pdf.interest_tag || 'unknown'}` },
-                { type: 'mrkdwn', text: `*Priority:*\n${pdf.priority_level}` },
-                { type: 'mrkdwn', text: `*User Tier:*\n${userTier}` },
-              ],
-            },
-          ],
-        })
-      } catch (slackError) {
-        console.warn('Slack notification warning:', slackError)
-      }
+    } catch (slackError) {
+      console.warn('Locked click Slack warning:', slackError)
     }
 
     const { data: signalsForScore, error: scoreSignalsError } = await admin
@@ -216,25 +196,9 @@ export async function GET(
       }
     }
 
-    const { data: signedUrlData, error: signedUrlError } = await admin.storage
-      .from('pdf-library')
-      .createSignedUrl(pdf.storage_path, 60)
-
-    if (signedUrlError || !signedUrlData?.signedUrl) {
-      console.error('Signed URL error:', signedUrlError)
-      return NextResponse.json(
-        { error: 'Failed to generate download link' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.redirect(signedUrlData.signedUrl)
+    return NextResponse.redirect(new URL('/members/billing', request.url))
   } catch (error) {
-    console.error('PDF download route error:', error)
-
-    return NextResponse.json(
-      { error: 'Failed to process PDF download' },
-      { status: 500 }
-    )
+    console.error('Locked PDF route error:', error)
+    return NextResponse.redirect(new URL('/members/billing', request.url))
   }
 }

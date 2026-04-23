@@ -1,36 +1,67 @@
 tre1-techniq-automation/
-├── .github/
-│   └── workflows/
-│       └── ci.yml
+├── .openclaw/
 ├── app/
-│   ├── api/
-│   │   ├── lead/
-│   │   │   └── route.ts
-│   │   └── audit/
-│   │       └── complete/
-│   │           └── route.ts
-│   ├── audit/
-│   │   └── page.tsx
-│   ├── thank-you/
-│   │   └── page.tsx
 │   ├── about-lite/
+│   ├── api/
+│   │   ├── audit-request/
+│   │   ├── audit/complete/
+│   │   ├── download-pdf/[id]/
+│   │   ├── lead/
+│   │   ├── newsletter/
+│   │   ├── pdfs/[slug]/download/
+│   │   └── test-slack.ts
+│   ├── audit/
+│   ├── auth/callback/
+│   ├── debug-env/
+│   ├── debug-login/
+│   ├── login/
+│   ├── members/
+│   │   ├── billing/
+│   │   ├── community/
+│   │   ├── library/
+│   │   ├── settings/
+│   │   ├── layout.tsx
 │   │   └── page.tsx
+│   ├── privacy/
+│   ├── signup/
+│   ├── terms/
+│   ├── thank-you/
+│   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx
 ├── components/
-│   ├── Header.tsx
 │   ├── Footer.tsx
-│   └── LeadForm.tsx
+│   ├── Header.tsx
+│   ├── LeadForm.tsx
+│   ├── LoginForm.tsx
+│   ├── MembersNavbar.tsx
+│   ├── MultiStepAuditForm.tsx
+│   └── NewsletterForm.tsx
+├── config/
+│   └── mcporter.json
 ├── lib/
-│   ├── supabase.ts
-│   ├── slack.ts
+│   ├── emails/
 │   ├── events/
-│   │   ├── eventBus.ts
-│   │   └── handlers/
-│   │       ├── slackNotifier.ts
-│   │       └── emailNotifier.ts
-│   └── reports/
-│       └── generateAuditReport.ts
+│   ├── reports/
+│   ├── server/
+│   ├── database.types.ts
+│   ├── resend.ts
+│   ├── slack.ts
+│   ├── supabase-admin.ts
+│   └── supabase.ts
+├── memory/
+│   └── 2026-04-11.md
 ├── public/
+│   ├── test-js.html
 │   └── tre1-logo.png
-└── .env.local.example
+├── .gitattributes
+├── .gitignore
+├── middleware.ts
+├── next-env.d.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── site-tree.txt
+├── tailwind.config.js
+├── tsconfig.json
+└── types.d.ts

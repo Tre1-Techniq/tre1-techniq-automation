@@ -38,6 +38,9 @@ type PdfResource = {
   storage_path: string
   is_active: boolean
   created_at: string
+  interest_tag?: string | null
+  priority_level?: string | null
+  followup_type?: string | null
 }
 
 export default async function LibraryPage() {
@@ -54,7 +57,7 @@ export default async function LibraryPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('tier, full_name')
+    .select('tier')
     .eq('id', user.id)
     .single()
 
@@ -207,6 +210,7 @@ export default async function LibraryPage() {
                           <div className="flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 className="font-medium text-gray-900">{pdf.title}</h3>
+
                               {pdf.required_tier !== 'free' && (
                                 <span
                                   className={`px-2 py-0.5 text-xs rounded-full ${tierColors[pdf.required_tier].bg} ${tierColors[pdf.required_tier].text}`}
@@ -214,6 +218,7 @@ export default async function LibraryPage() {
                                   {tierDisplay[pdf.required_tier]} Tier
                                 </span>
                               )}
+
                               {!isAccessible && (
                                 <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700 flex items-center gap-1">
                                   <LockClosedIcon className="h-3 w-3" />
@@ -222,10 +227,18 @@ export default async function LibraryPage() {
                               )}
                             </div>
 
-                            <p className="text-gray-600 text-sm mt-1">{pdf.description || 'No description available.'}</p>
+                            <p className="text-gray-600 text-sm mt-1">
+                              {pdf.description || 'No description available.'}
+                            </p>
 
                             <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500">
                               <span>Added: {new Date(pdf.created_at).toLocaleDateString()}</span>
+                              {pdf.interest_tag && (
+                                <>
+                                  <span>•</span>
+                                  <span>Interest: {pdf.interest_tag}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -241,7 +254,7 @@ export default async function LibraryPage() {
                             </Link>
                           ) : (
                             <Link
-                              href="/members/billing"
+                              href={`/api/pdfs/${pdf.slug}/locked`}
                               className="flex items-center space-x-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
                             >
                               <LockClosedIcon className="h-4 w-4" />

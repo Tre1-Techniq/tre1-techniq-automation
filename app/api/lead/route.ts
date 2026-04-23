@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { sendSlackNotification } from '@/lib/slack'
+import { sendSlackMessage } from '@/lib/slack'
 
 export async function POST(request: Request) {
   try {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
     // Send Slack notification (don't fail request if Slack fails)
     try {
-      await sendSlackNotification(lead)
+      await sendSlackMessage(lead)
     } catch (slackError) {
       console.error('Slack notification failed:', slackError)
       // Continue anyway - Slack failure shouldn't break lead capture

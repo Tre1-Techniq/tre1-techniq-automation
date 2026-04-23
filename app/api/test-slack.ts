@@ -1,11 +1,11 @@
 // app/api/test-slack/route.ts - SEPARATE FILE
 import { NextRequest, NextResponse } from 'next/server'
-import { sendSlackNotification } from '@/lib/slack'
+import { sendSlackMessage } from '@/lib/slack'
 
 export async function GET(request: NextRequest) {
   try {
     // Test with simple message
-    await sendSlackNotification({
+    await sendSlackMessage({
       text: 'Test message from Tre1 TechnIQ',
       blocks: [
         {

@@ -2,6 +2,61 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+export async function sendLeadFollowUpEmail(
+  to: string,
+  name: string,
+  subject: string,
+  message: string
+) {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Tre1 TechnIQ <success@tre1-techniq.com>',
+      to: [to],
+      subject,
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 10px; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="content">
+          <p>Hi <strong>${name}</strong>,</p>
+          <div style="white-space: pre-wrap;">${message}</div>
+          <div class="footer">
+            <p>Best regards,<br><strong>The Tre1 TechnIQ Team</strong></p>
+            <p style="font-size: 12px; color: #999;">
+              Tre1 TechnIQ Automation<br>
+              <a href="https://tre1-techniq.com" style="color: #00B5A5;">tre1-techniq.com</a>
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+      `,
+      text: `Hi ${name},\n\n${message}\n\nBest regards,\nThe Tre1 TechnIQ Team`,
+    })
+
+    if (error) {
+      console.error('❌ Lead follow-up email error:', error)
+      return { success: false, error }
+    }
+
+    console.log('✅ Lead follow-up email sent to:', to)
+    return { success: true, data }
+  } catch (error) {
+    console.error('❌ Lead follow-up send error:', error)
+    return { success: false, error }
+  }
+}
+
 export async function sendWelcomeEmail(
   to: string,
   name: string,

@@ -92,7 +92,7 @@ export default function ThankYouPage() {
                 <li className="flex items-center">
                   <span className="text-tre1-gray mr-2">📧</span>
                   <a href="mailto:support@tre1techniq.com" className="text-tre1-teal hover:underline">
-                    support@tre1techniq.com
+                    support@tre1-techniq.com
                   </a>
                 </li>
                 <li className="flex items-center">
