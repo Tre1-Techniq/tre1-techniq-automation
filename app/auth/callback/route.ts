@@ -5,8 +5,6 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next')
-  const safeNext = next && next.startsWith('/') ? next : '/members'
 
   if (!code) {
     return NextResponse.redirect(`${requestUrl.origin}/login?error=Missing%20auth%20code`)
@@ -24,18 +22,18 @@ export async function GET(request: Request) {
   }
 
   if (data?.user) {
-    try {
-      const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-          },
-        }
-      )
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    )
 
+    try {
       const { data: existingProfile } = await supabaseAdmin
         .from('profiles')
         .select('id')
@@ -53,7 +51,20 @@ export async function GET(request: Request) {
     } catch (profileError) {
       console.warn('Profile creation error in callback:', profileError)
     }
+
+    const normalizedEmail = data.user.email?.trim().toLowerCase() || null
+    if (normalizedEmail) {
+      const { data: matchedAudit } = await supabaseAdmin
+        .from('audit_requests')
+        .select('id')
+        .or(`contact_email.eq.${normalizedEmail},submitted_email.eq.${normalizedEmail}`)
+        .limit(1)
+
+      if (matchedAudit && matchedAudit.length > 0) {
+        return NextResponse.redirect(`${requestUrl.origin}/members`)
+      }
+    }
   }
 
-  return NextResponse.redirect(`${requestUrl.origin}${safeNext}`)
+  return NextResponse.redirect(`${requestUrl.origin}/audit`)
 }

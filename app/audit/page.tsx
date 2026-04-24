@@ -16,6 +16,9 @@ export default function AuditPage() {
           <p className="text-xl text-tre1-gray">
             A 15-minute session to map repetitive tasks costing you time and money.
           </p>
+          <p className="mt-4 text-sm text-tre1-gray">
+            Member login is available after submitting a free audit request. New here? Start with the free audit.
+          </p>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

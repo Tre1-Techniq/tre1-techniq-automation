@@ -7,8 +7,11 @@ export default async function Header() {
     data: { user },
   } = await supabase.auth.getUser()
   const isAuthenticated = !!user
-  const membersLink = isAuthenticated
-    ? { href: '/members', label: 'MEMBERS' }
+  const secondaryLink = isAuthenticated
+    ? { href: '/members/settings', label: 'Settings' }
+    : { href: '/login', label: 'Login' }
+  const primaryCta = isAuthenticated
+    ? { href: '/members', label: 'DASHBOARD' }
     : { href: '/audit', label: 'FREE AUDIT' }
 
   return (
@@ -24,15 +27,14 @@ export default async function Header() {
           
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/" className="text-gray-700 hover:text-tre1-teal">Home</Link>
-            <Link href="/audit" className="text-gray-700 hover:text-tre1-teal">Free Audit</Link>
             <Link href="/about-lite" className="text-gray-700 hover:text-tre1-teal">About</Link>
-            <Link href={membersLink.href} className="text-gray-700 hover:text-tre1-teal">{membersLink.label}</Link>
-            <a
-              href="/audit"
+            <Link href={secondaryLink.href} className="text-gray-700 hover:text-tre1-teal">{secondaryLink.label}</Link>
+            <Link
+              href={primaryCta.href}
               className="rounded-lg bg-tre1-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition"
             >
-              Book an Audit
-            </a>
+              {primaryCta.label}
+            </Link>
           </nav>
           
           <button className="md:hidden p-2">
