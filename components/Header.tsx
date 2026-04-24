@@ -1,6 +1,16 @@
 import Link from 'next/link'
+import { createClient as createServerClient } from '@/lib/server/supabase'
 
-export default function Header() {
+export default async function Header() {
+  const supabase = await createServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const isAuthenticated = !!user
+  const membersLink = isAuthenticated
+    ? { href: '/members', label: 'MEMBERS' }
+    : { href: '/audit', label: 'FREE AUDIT' }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -16,7 +26,7 @@ export default function Header() {
             <Link href="/" className="text-gray-700 hover:text-tre1-teal">Home</Link>
             <Link href="/audit" className="text-gray-700 hover:text-tre1-teal">Free Audit</Link>
             <Link href="/about-lite" className="text-gray-700 hover:text-tre1-teal">About</Link>
-            <Link href="/members" className="text-gray-700 hover:text-tre1-teal">Members</Link>
+            <Link href={membersLink.href} className="text-gray-700 hover:text-tre1-teal">{membersLink.label}</Link>
             <a
               href="/audit"
               className="rounded-lg bg-tre1-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition"
