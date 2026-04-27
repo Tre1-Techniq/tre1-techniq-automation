@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-25T23:16:59.633Z",
+  "entries": {
+    "memory:memory/2026-04-11.md:1:37": {
+      "key": "memory:memory/2026-04-11.md:1:37",
+      "path": "memory/2026-04-11.md",
+      "startLine": 1,
+      "endLine": 37,
+      "source": "memory",
+      "snippet": "## April 11, 2026 - Authentication Progress ### OAuth Server Enabled - Supabase OAuth Server successfully enabled - Endpoints now available: - Authorization: https://oxkjtscvufysbztemoby.supabase.co/auth/v1/oauth/authorize - Token: https://oxkjtscvufysbztemoby.supabase.co/auth/v1/oauth/token - JWKS: https://oxkjtscvufysbztemoby.supabase.co/auth/v1/.well-known/jwks.json - OIDC: https://oxkjtscvufysbztemoby.supabase.co/auth/v1/.well-known/openid-configuration ### Configuration Applied - Site URL: https://tre1-techniq-automation.vercel.app (no trailing slash) - Authorization Path: /auth/callback - Dynamic OAuth Apps: Disabled (security best practice) ### Vercel Build Status - ✅ Build",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.2573440909385681,
+      "maxScore": 0.2573440909385681,
+      "firstRecalledAt": "2026-04-25T23:16:59.633Z",
+      "lastRecalledAt": "2026-04-25T23:16:59.633Z",
+      "queryHashes": [
+        "3bdf96a1986f"
+      ],
+      "recallDays": [
+        "2026-04-25"
+      ],
+      "conceptTags": [
+        "well-known/jwks.json",
+        "well-known/openid-configuration",
+        "auth/callback",
+        "april",
+        "authentication",
+        "progress",
+        "oauth",
+        "server"
+      ]
+    },
+    "memory:memory/2026-04-11.md:56:72": {
+      "key": "memory:memory/2026-04-11.md:56:72",
+      "path": "memory/2026-04-11.md",
+      "startLine": 56,
+      "endLine": 72,
+      "source": "memory",
+      "snippet": "5. Update audit form to use normalized fields (first_name, last_name, zip_code) ### Key Decisions - Added OAuth buttons to signup page for consistent user experience - Using simplified signup form design for better maintainability - Keeping email signup as fallback option alongside OAuth ### User Testing Feedback - User reported network timeout during email signup (likely WiFi bottleneck) - User requested OAuth buttons on signup page (now implemented) - Need to test OAuth flow after provider configuration ### Deployment Status - Production: `https://tre1-techniq-automation.vercel.app` - GitHub repo: `Tre1-Techniq/tre1-techniq-automation` - Main branch deployed to Vercel - DEV branch conta",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.2563746929168701,
+      "maxScore": 0.2563746929168701,
+      "firstRecalledAt": "2026-04-25T23:16:59.633Z",
+      "lastRecalledAt": "2026-04-25T23:16:59.633Z",
+      "queryHashes": [
+        "3bdf96a1986f"
+      ],
+      "recallDays": [
+        "2026-04-25"
+      ],
+      "conceptTags": [
+        "network",
+        "first-name",
+        "last-name",
+        "zip-code",
+        "update",
+        "audit",
+        "form",
+        "use"
+      ]
+    },
+    "memory:memory/2026-04-11.md:31:64": {
+      "key": "memory:memory/2026-04-11.md:31:64",
+      "path": "memory/2026-04-11.md",
+      "startLine": 31,
+      "endLine": 64,
+      "source": "memory",
+      "snippet": "### Memory Flush - 2026-04-11 21:22 UTC ### Project Progress - Successfully merged DEV branch into MAIN after fixing OAuth authentication files - Vercel build completed successfully after merge - Fixed signup page syntax error and added OAuth buttons (Google/GitHub) - Signup page now has consistent authentication UX with login page ### Authentication Status - OAuth Server enabled in Supabase - Public Client configured for PKCE flow - Google OAuth provider needs configuration (Client ID/Secret from Google Cloud Console) - GitHub OAuth provider needs configuration (Client ID/Secret from GitHub OAuth App) - Email signup working but experiencing network timeout errors (ERR_TIMED_OUT) ### Tech",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.22271996736526486,
+      "maxScore": 0.22271996736526486,
+      "firstRecalledAt": "2026-04-25T23:16:59.633Z",
+      "lastRecalledAt": "2026-04-25T23:16:59.633Z",
+      "queryHashes": [
+        "3bdf96a1986f"
+      ],
+      "recallDays": [
+        "2026-04-25"
+      ],
+      "conceptTags": [
+        "network",
+        "google/github",
+        "id/secret",
+        "err-timed-out",
+        "flush",
+        "utc",
+        "project",
+        "progress"
+      ]
+    }
+  }
+}

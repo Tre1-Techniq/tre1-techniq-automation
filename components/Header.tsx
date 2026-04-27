@@ -1,5 +1,8 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient as createServerClient } from '@/lib/server/supabase'
+
+const linkBase = 'rounded-md px-3 py-2 text-sm font-medium transition'
 
 export default async function Header() {
   const supabase = await createServerClient()
@@ -15,33 +18,34 @@ export default async function Header() {
     : { href: '/audit', label: 'FREE AUDIT' }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <header className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-md border-b border-gray-800">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-tre1-teal to-teal-600"></div>
-              <span className="text-xl font-bold text-tre1-dark">Tre1 TechnIQ</span>
-            </Link>
-          </div>
-          
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-700 hover:text-tre1-teal">Home</Link>
-            <Link href="/about-lite" className="text-gray-700 hover:text-tre1-teal">About</Link>
-            <Link href={secondaryLink.href} className="text-gray-700 hover:text-tre1-teal">{secondaryLink.label}</Link>
-            <Link
-              href={primaryCta.href}
-              className="rounded-lg bg-tre1-orange px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 transition"
-            >
-              {primaryCta.label}
+        <div className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-6">
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="Tre1 TechnIQ"
+              width={175}
+              height={53}
+              className="h-10 w-auto"
+              priority
+            />
+          </Link>
+
+          <nav className="hidden md:flex items-center justify-center space-x-8">
+            <Link href="/" className={`${linkBase} text-gray-200 hover:text-tre1-orange`}>Home</Link>
+            <Link href="/about-lite" className={`${linkBase} text-gray-200 hover:text-tre1-orange`}>About</Link>
+            <Link href={secondaryLink.href} className={`${linkBase} text-gray-200 hover:text-tre1-orange`}>
+              {secondaryLink.label}
             </Link>
           </nav>
-          
-          <button className="md:hidden p-2">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+
+          <Link
+            href={primaryCta.href}
+            className="hidden md:inline-flex bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition"
+          >
+            {primaryCta.label}
+          </Link>
         </div>
       </div>
     </header>

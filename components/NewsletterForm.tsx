@@ -91,7 +91,6 @@ export default function NewsletterForm() {
 
         {/* Privacy Notice */}
         <p className="text-xs text-gray-500">
-          By subscribing, you agree to receive automation tips and updates. 
           We respect your privacy. Unsubscribe at any time.
         </p>
       </form>

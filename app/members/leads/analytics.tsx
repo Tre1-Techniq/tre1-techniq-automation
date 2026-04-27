@@ -36,12 +36,6 @@ const AnalyticsPage = () => {
       const { sent, replied } = stats[key]
       const replyRate = sent > 0 ? ((replied / sent) * 100).toFixed(2) : '0.00%'
       return (
-        
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-        }
 
         <div key={key} className="mb-4">
           <h4>{key}</h4>

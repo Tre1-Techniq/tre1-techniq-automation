@@ -827,7 +827,6 @@ export default async function LeadDetailPage({ params }: PageProps) {
           </div>
         )}
       </div>
-        )}
   </div>
   )
 }

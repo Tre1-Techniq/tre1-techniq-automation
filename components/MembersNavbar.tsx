@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import {
   HomeIcon,
@@ -23,6 +25,7 @@ export default function MembersNavbar({ tier, userName }: MembersNavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
 
   useEffect(() => {
@@ -59,77 +62,68 @@ export default function MembersNavbar({ tier, userName }: MembersNavbarProps) {
     { name: 'Settings', href: '/members/settings', icon: CogIcon },
   ]
 
+  const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`)
+  const linkBase = 'rounded-md px-3 py-2 text-sm font-medium transition'
+
   return (
-    <nav className="bg-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo + Desktop Navigation */}
-          <div className="flex items-center space-x-2">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-gradient-to-r from-tre1-teal to-teal-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">T1</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900 hidden md:inline">
-                Tre1 TechnIQ
-              </span>
-            </Link>
+    <nav className="sticky top-0 z-50 w-full border-b border-gray-800 bg-gray-900/80 backdrop-blur-md">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-6">
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo.png"
+              alt="Tre1 TechnIQ"
+              width={175}
+              height={53}
+              className="h-10 w-auto"
+              priority
+            />
+          </Link>
 
-            <div className="hidden md:flex items-center space-x-1 ml-8">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-tre1-teal rounded-md transition"
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </div>
-          </div>
+          <nav className="hidden md:flex items-center justify-center gap-8">
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={`${linkBase} ${
+                  isActive(link.href)
+                    ? 'text-tre1-orange'
+                    : 'text-gray-200 hover:text-tre1-orange'
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </nav>
 
-          {/* User Menu */}
-          <div className="flex items-center space-x-4">
-            {/* Tier Badge */}
-            <div
-              className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                tier === 'premium'
-                  ? 'bg-gradient-to-r from-tre1-orange to-orange-500 text-white'
-                  : tier === 'pro'
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-800'
-              }`}
-            >
-              {tier.charAt(0).toUpperCase() + tier.slice(1)} Tier
-            </div>
-
-            {/* Account Dropdown */}
+          <div className="flex items-center justify-end space-x-4">
             <div ref={dropdownRef} className="relative">
               <button
                 onClick={() => setDropdownOpen((prev) => !prev)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition"
+                className="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-100 transition hover:bg-white/10 hover:text-tre1-orange"
               >
-                <div className="h-8 w-8 bg-gradient-to-r from-tre1-teal to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-tre1-teal to-teal-600 flex items-center justify-center text-white font-semibold">
                   {userName.charAt(0).toUpperCase()}
                 </div>
 
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-gray-900">{userName}</p>
-                  <p className="text-xs text-gray-500">{tier} member</p>
+                  <p className="text-sm font-medium text-gray-100">{userName}</p>
+                  <p className="text-xs text-gray-400">{tier} member</p>
                 </div>
 
-                <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+                <ChevronDownIcon className="h-4 w-4 text-gray-300" />
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-10 border border-gray-200">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900">{userName}</p>
-                    <p className="text-xs text-gray-500">{tier} member</p>
+                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-gray-800 bg-gray-900/95 py-2 shadow-lg backdrop-blur-md z-10">
+                  <div className="border-b border-gray-800 px-4 py-2">
+                    <p className="text-sm font-medium text-gray-100">{userName}</p>
+                    <p className="text-xs text-gray-400">{tier} member</p>
                   </div>
 
                   <Link
                     href="/"
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="flex items-center px-4 py-2 text-sm text-gray-200 hover:bg-white/10 hover:text-tre1-orange"
                     onClick={closeDropdown}
                   >
                     <HomeIcon className="h-4 w-4 mr-3" />
@@ -138,7 +132,7 @@ export default function MembersNavbar({ tier, userName }: MembersNavbarProps) {
 
                   <button
                     onClick={handleLogout}
-                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                    className="flex w-full items-center px-4 py-2 text-sm text-gray-200 hover:bg-white/10 hover:text-tre1-orange"
                   >
                     <ArrowRightOnRectangleIcon className="h-4 w-4 mr-3" />
                     Sign Out
@@ -149,14 +143,17 @@ export default function MembersNavbar({ tier, userName }: MembersNavbarProps) {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden py-3 border-t border-gray-200">
+        <div className="md:hidden border-t border-gray-800 py-3">
           <div className="flex justify-around">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="flex flex-col items-center text-xs text-gray-600 hover:text-tre1-teal"
+                className={`flex flex-col items-center text-xs transition ${
+                  isActive(link.href)
+                    ? 'text-tre1-orange'
+                    : 'text-gray-300 hover:text-tre1-orange'
+                }`}
               >
                 <link.icon className="h-5 w-5 mb-1" />
                 {link.name}

@@ -1,9 +1,9 @@
 // app/members/page.tsx
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase'
 import {
   ChartBarIcon,
   DocumentTextIcon,
@@ -13,27 +13,134 @@ import {
   BellIcon,
   ArrowRightIcon,
   SparklesIcon,
+  CheckCircleIcon,
+  InboxIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline'
 
 export const dynamic = 'force-dynamic'
 
-export default function MembersDashboard() {
-  const router = useRouter()
+type ProfileData = {
+  tier: string | null
+  first_name: string | null
+  last_name: string | null
+  display_name: string | null
+  contact_email: string | null
+}
 
+type AuditData = {
+  id: string
+  created_at: string | null
+  submitted_at: string | null
+  first_name: string | null
+  last_name: string | null
+  company_name: string | null
+  primary_pain: string | null
+  time_wasters: string[] | null
+  current_tools: string[] | null
+  report_access_token: string | null
+}
+
+export default function MembersDashboard() {
   const supabase = createClient()
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-  }
+  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [audit, setAudit] = useState<AuditData | null>(null)
+  const [authEmail, setAuthEmail] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const stats = [
-    { label: 'Automation Score', value: '72%', icon: ChartBarIcon, color: 'bg-blue-500' },
-    { label: 'PDFs Accessed', value: '3', icon: DocumentTextIcon, color: 'bg-green-500' },
-    { label: 'Days Active', value: '1', icon: BellIcon, color: 'bg-purple-500' },
-    { label: 'Current Tier', value: 'Free', icon: SparklesIcon, color: 'bg-orange-500' },
-  ]
+  useEffect(() => {
+    async function loadDashboardData() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      setAuthEmail(user.email || null)
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('tier, first_name, last_name, display_name, contact_email')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      setProfile((profileData || null) as ProfileData | null)
+
+      const auditSelect =
+        'id, created_at, submitted_at, first_name, last_name, company_name, primary_pain, time_wasters, current_tools, report_access_token'
+
+      const { data: linkedAudit } = await supabase
+        .from('audit_requests')
+        .select(auditSelect)
+        .eq('submitted_by_user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (linkedAudit) {
+        setAudit(linkedAudit as AuditData)
+        setLoading(false)
+        return
+      }
+
+      const emailCandidates = Array.from(
+        new Set(
+          [user.email, profileData?.contact_email]
+            .map((email) => email?.trim().toLowerCase())
+            .filter(Boolean) as string[]
+        )
+      )
+
+      if (emailCandidates.length > 0) {
+        const orFilter = emailCandidates
+          .flatMap((email) => [`contact_email.eq.${email}`, `submitted_email.eq.${email}`])
+          .join(',')
+
+        const { data: emailAudit } = await supabase
+          .from('audit_requests')
+          .select(auditSelect)
+          .or(orFilter)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        setAudit((emailAudit || null) as AuditData | null)
+      }
+
+      setLoading(false)
+    }
+
+    loadDashboardData()
+  }, [supabase])
+
+  const tier = profile?.tier || 'free'
+
+  const firstName = useMemo(() => {
+    return (
+      profile?.first_name?.trim() ||
+      audit?.first_name?.trim() ||
+      profile?.display_name?.trim()?.split(' ')[0] ||
+      authEmail?.split('@')[0] ||
+      'Member'
+    )
+  }, [profile, audit, authEmail])
+
+  const memberSince = useMemo(() => {
+    const rawDate = audit?.created_at || audit?.submitted_at
+    if (!rawDate) return 'Pending'
+
+    const date = new Date(rawDate)
+    if (Number.isNaN(date.getTime())) return 'Pending'
+
+    return date.toLocaleDateString()
+  }, [audit])
+
+  const messageCount = 0
+  const hasNewMessages = false
 
   const quickActions = [
     { title: 'Automation Library', desc: 'Browse automation templates', icon: DocumentTextIcon, href: '/members/library', color: 'bg-tre1-teal' },
@@ -48,67 +155,217 @@ export default function MembersDashboard() {
     { action: 'Completed profile setup', time: '10 min ago', icon: '✅' },
   ]
 
+  const recommendations = [
+    'Review your Initial Audit findings',
+    'Prioritize your highest-friction workflow',
+    'Match your current tools to recommended resources',
+  ]
+
+  const timeSavingTasks = [
+    ...(audit?.time_wasters || []),
+    audit?.primary_pain,
+  ].filter(Boolean) as string[]
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 bg-gradient-to-r from-tre1-teal to-teal-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">T1</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900">Member Portal</span>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">Signed In</p>
-              <p className="text-xs text-gray-500">Free Tier</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="bg-gradient-to-r from-tre1-teal to-teal-600 rounded-2xl p-8 text-white mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Welcome to Tre1 TechnIQ!</h1>
-              <p className="text-teal-100">Your automation journey starts here. Explore resources, tools, and community.</p>
+          <div className="flex flex-col gap-6 md:flex-row md:justify-between md:items-start">
+            <div className="w-full">
+              <h1 className="text-3xl font-bold mb-2">
+                Welcome {loading ? 'Member' : firstName}!
+              </h1>
+
+              <p className="text-teal-100">
+                Your automation journey starts here. Explore resources, tools, and community.
+              </p>
+
+              <div className="mt-6 border-t border-white/30 pt-5">
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <span className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 font-semibold text-white border border-white/30">
+                    <SparklesIcon className="mr-2 h-4 w-4" />
+                    {tier.charAt(0).toUpperCase() + tier.slice(1)} Tier
+                  </span>
+
+                  {tier !== 'enterprise' && (
+                    <Link
+                      href="/members/billing"
+                      className="inline-flex items-center rounded-full bg-white px-3 py-1 font-semibold text-tre1-teal transition hover:bg-gray-100"
+                    >
+                      Upgrade
+                    </Link>
+                  )}
+
+                  <span className="hidden h-5 w-px bg-white/30 sm:inline-block" />
+
+                  <span className="inline-flex items-center text-teal-50">
+                    <CheckCircleIcon className="mr-2 h-4 w-4" />
+                    Member Since: {memberSince}
+                  </span>
+
+                  <span className="hidden h-5 w-px bg-white/30 sm:inline-block" />
+
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 font-semibold text-white ${
+                      hasNewMessages ? 'bg-red-500' : 'bg-green-500'
+                    }`}
+                  >
+                    {messageCount}
+                  </span>
+
+                  <Link
+                    href="/members/messages"
+                    className="inline-flex items-center font-semibold text-white transition hover:text-orange-200"
+                  >
+                    Messages
+                    <ArrowRightIcon className="ml-1 h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
             </div>
+
             <Link
-              href="/audit"
-              className="mt-4 md:mt-0 px-6 py-3 bg-white text-tre1-teal font-semibold rounded-lg hover:bg-gray-100 transition inline-flex items-center"
+              href="/members/reports"
+              className="mt-2 inline-flex shrink-0 items-center rounded-lg bg-white px-6 py-3 font-semibold text-tre1-teal transition hover:bg-gray-100 md:mt-0"
             >
-              Upgrade Audit <ArrowRightIcon className="ml-2 h-5 w-5" />
+              Review Your Audit <ArrowRightIcon className="ml-2 h-5 w-5" />
             </Link>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-xl shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">{stat.label}</p>
-                  <p className="text-2xl font-bold mt-2">{stat.value}</p>
+        <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+          {/* BOX 1 — Automation Readiness */}
+          <div className="flex h-full flex-col rounded-xl bg-white p-6 shadow">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-tre1-teal">Automation Readiness</p>
+                <p className="mt-2 text-4xl font-bold">72%</p>
+              </div>
+
+              <ChartBarIcon className="h-10 w-10 text-tre1-teal" />
+            </div>
+
+            <div className="mt-5 pt-5">
+              <p className="text-sm text-gray-600">
+                We can work directly with your team to implement time-saving Automation Systems.
+              </p>
+            </div>
+
+            <Link
+              href="/members/reports#consultation"
+              className="mt-auto inline-flex items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
+            >
+              Book a Consultation
+              <ArrowRightIcon className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+
+          {/* BOX 2 — PDFs Accessed */}
+          <div className="flex h-full flex-col rounded-xl bg-white p-6 shadow">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-tre1-teal">PDFs Accessed</p>
+
+                <div className="mt-3">
+                  <p className="text-4xl font-bold">2/2</p>
+                  <p className="text-xs text-gray-400">Free PDFs</p>
                 </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <stat.icon className="h-6 w-6 text-white" />
+
+                <div className="mt-4">
+                  <p className="text-4xl font-bold">0/1</p>
+                  <p className="text-xs text-gray-400">Premium PDFs</p>
                 </div>
               </div>
+
+              <DocumentTextIcon className="h-10 w-10 text-tre1-teal" />
             </div>
-          ))}
+
+            <Link
+              href="/members/library"
+              className="mt-auto inline-flex items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
+            >
+              PDF Library
+              <ArrowRightIcon className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+
+          {/* BOX 3 — Potential Time Saved */}
+          <div className="flex h-full flex-col rounded-xl bg-white p-6 shadow">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-tre1-teal">Potential Time Saved</p>
+                <p className="mt-2 text-4xl font-bold">10 hrs</p>
+                <p className="text-xs text-gray-400">Hours / week</p>
+              </div>
+
+              <ClockIcon className="h-10 w-10 text-tre1-teal" />
+            </div>
+
+            <div className="mt-5 mb-5">
+              <p className="mb-3 text-xs text-gray-500">
+                * based on task automation:
+              </p>
+
+              <div className="space-y-2">
+                {timeSavingTasks.slice(0, 2).map((task, index) => (
+                  <div key={`${task}-${index}`} className="flex items-start gap-3 text-sm text-gray-700">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
+                      {index + 1}
+                    </span>
+                    <span className="line-clamp-2">{task}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Link
+              href="/members/reports#time-savings"
+              className="mt-auto inline-flex items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
+            >
+              Detailed Report
+              <ArrowRightIcon className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+
+          {/* BOX 4 — Recommendations */}
+          <div className="flex h-full flex-col rounded-xl bg-white p-6 shadow">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-tre1-teal">Recommendations</p>
+              </div>
+
+              <SparklesIcon className="h-10 w-10 text-tre1-teal" />
+            </div>
+
+            <div className="mt-5 mb-5 space-y-3">
+              {recommendations.slice(0, 3).map((recommendation, index) => (
+                <Link
+                  key={recommendation}
+                  href="/members/reports#recommendations"
+                  className="flex items-center gap-3 rounded-lg text-sm text-gray-700 transition hover:text-tre1-teal"
+                >
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
+                    {index + 1}
+                  </span>
+                  <span className="line-clamp-1">{recommendation}</span>
+                </Link>
+              ))}
+            </div>
+
+            <Link
+              href="/members/reports#recommendations"
+              className="mt-auto inline-flex items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
+            >
+              View Details
+              <ArrowRightIcon className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {quickActions.map((action, index) => (
                 <Link
@@ -133,9 +390,13 @@ export default function MembersDashboard() {
 
             <div className="mt-8 bg-white rounded-xl shadow p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
+
               <div className="space-y-4">
                 {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
+                  >
                     <div className="flex items-center space-x-3">
                       <span className="text-xl">{activity.icon}</span>
                       <div>
@@ -150,35 +411,76 @@ export default function MembersDashboard() {
           </div>
 
           <div>
-            <div className="bg-white rounded-xl shadow p-6 mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Getting Started</h2>
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-semibold text-blue-900">📚 Explore the Library</h3>
-                  <p className="text-sm text-blue-700 mt-1">Access automation guides and templates.</p>
+            <div className="bg-white rounded-xl shadow p-6 h-full">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Initial Audit Recap
+                </h2>
+
+                <DocumentTextIcon className="h-6 w-6 text-tre1-teal" />
+              </div>
+
+              <div className="space-y-6 text-sm text-gray-700">
+                {/* COMPANY */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                    Company
+                  </p>
+                  <p>{audit?.company_name || '—'}</p>
                 </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <h3 className="font-semibold text-green-900">🎯 Request an Audit</h3>
-                  <p className="text-sm text-green-700 mt-1">Get personalized automation recommendations.</p>
+
+                {/* PRIMARY PAIN */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                    Major Pain Point
+                  </p>
+                  <p>{audit?.primary_pain || '—'}</p>
                 </div>
-                <div className="p-4 bg-purple-50 rounded-lg">
-                  <h3 className="font-semibold text-purple-900">👥 Join Community</h3>
-                  <p className="text-sm text-purple-700 mt-1">Connect with other automation enthusiasts.</p>
+
+                {/* TIME WASTERS */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                    Time Wasters
+                  </p>
+
+                  <div className="space-y-1">
+                    {(audit?.time_wasters || []).slice(0, 3).map((item, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-tre1-teal font-semibold">{i + 1}.</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+
+                    {!audit?.time_wasters?.length && <p>—</p>}
+                  </div>
+                </div>
+
+                {/* CURRENT TOOLS */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                    Current Tools
+                  </p>
+
+                  <div className="space-y-1">
+                    {(audit?.current_tools || []).slice(0, 3).map((tool, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-tre1-teal font-semibold">{i + 1}.</span>
+                        <span>{tool}</span>
+                      </div>
+                    ))}
+
+                    {!audit?.current_tools?.length && <p>—</p>}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-gradient-to-r from-tre1-orange to-orange-500 rounded-xl shadow p-6 text-white">
-              <h2 className="text-xl font-bold mb-4">Upgrade Your Plan</h2>
-              <p className="mb-4">Unlock advanced features and priority support.</p>
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center"><span className="mr-2">✓</span> Unlimited PDF access</li>
-                <li className="flex items-center"><span className="mr-2">✓</span> Priority audit scheduling</li>
-                <li className="flex items-center"><span className="mr-2">✓</span> Direct expert support</li>
-              </ul>
-              <button className="w-full py-3 bg-white text-orange-600 font-semibold rounded-lg hover:bg-gray-100 transition">
-                View Plans
-              </button>
+              <Link
+                href="/members/reports"
+                className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
+              >
+                View Full Audit
+                <ArrowRightIcon className="ml-1 h-4 w-4" />
+              </Link>
             </div>
           </div>
         </div>

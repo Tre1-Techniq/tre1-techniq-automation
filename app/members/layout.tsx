@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import MembersNavbar from '@/components/MembersNavbar'
+import Footer from '@/components/Footer'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +88,7 @@ export default async function MembersLayout({
             userName={defaultProfile.full_name || defaultProfile.email.split('@')[0] || 'Member'}
           />
           <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+          <Footer />
         </div>
       )
     }
@@ -104,6 +106,7 @@ export default async function MembersLayout({
       <div className="min-h-screen bg-gray-50">
         <MembersNavbar tier={tier} userName={userName} />
         <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+        <Footer />
       </div>
     )
   } catch (error) {

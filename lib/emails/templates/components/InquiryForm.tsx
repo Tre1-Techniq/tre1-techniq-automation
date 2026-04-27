@@ -46,7 +46,14 @@ export default function InquiryForm() {
     
     try {
       // Send welcome email to the user
-      await sendWelcomeEmail(formData.email, formData.name, formData.company)
+      const accessUrl = `${window.location.origin}/audit`
+
+      await sendWelcomeEmail(
+        formData.email,
+        formData.name,
+        formData.company,
+        accessUrl
+      )
       
       // Send team notification
       await sendTeamAuditNotification({
