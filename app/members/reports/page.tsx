@@ -1,7 +1,7 @@
 // app/members/reports/page.tsx
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import {
@@ -56,49 +56,49 @@ function fallback(value: string | null | undefined) {
 export default function ReportsPage() {
   const supabase = createClient()
 
+  const [aiSummary, setAiSummary] = useState<{
+    executive_summary: string
+    recommendations: string[]
+  } | null>(null)
+  
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [audit, setAudit] = useState<AuditData | null>(null)
   const [authEmail, setAuthEmail] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function loadReportData() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+useEffect(() => {
+  async function loadReportData() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-      if (!user) {
-        setLoading(false)
-        return
-      }
+    if (!user) {
+      setLoading(false)
+      return
+    }
 
-      setAuthEmail(user.email || null)
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('tier, first_name, last_name, display_name, contact_email')
+      .eq('id', user.id)
+      .maybeSingle()
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('tier, first_name, last_name, display_name, contact_email')
-        .eq('id', user.id)
-        .maybeSingle()
+    setProfile((profileData || null) as ProfileData | null)
 
-      setProfile((profileData || null) as ProfileData | null)
+    const auditSelect =
+      'id, created_at, submitted_at, company_name, industry, company_size, primary_pain, time_wasters, current_tools, automation_goals, integration_needs, budget, report_access_token, report_access_granted, status'
 
-      const auditSelect =
-        'id, created_at, submitted_at, company_name, industry, company_size, primary_pain, time_wasters, current_tools, automation_goals, integration_needs, budget, report_access_token, report_access_granted, status'
+    const { data: linkedAudit } = await supabase
+      .from('audit_requests')
+      .select(auditSelect)
+      .eq('submitted_by_user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-      const { data: linkedAudit } = await supabase
-        .from('audit_requests')
-        .select(auditSelect)
-        .eq('submitted_by_user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+    let resolvedAudit = linkedAudit as AuditData | null
 
-      if (linkedAudit) {
-        setAudit(linkedAudit as AuditData)
-        setLoading(false)
-        return
-      }
-
+    if (!resolvedAudit) {
       const emailCandidates = Array.from(
         new Set(
           [user.email, profileData?.contact_email]
@@ -120,25 +120,38 @@ export default function ReportsPage() {
           .limit(1)
           .maybeSingle()
 
-        setAudit((emailAudit || null) as AuditData | null)
+        resolvedAudit = emailAudit as AuditData | null
       }
-
-      setLoading(false)
     }
 
-    loadReportData()
-  }, [supabase])
+    if (resolvedAudit) {
+      setAudit(resolvedAudit)
 
-  const firstName = useMemo(() => {
-    return (
-      profile?.first_name?.trim() ||
-      profile?.display_name?.trim()?.split(' ')[0] ||
-      authEmail?.split('@')[0] ||
-      'Member'
-    )
-  }, [profile, authEmail])
+      try {
+        const response = await fetch('/api/reports/ai-summary')
+
+        if (response.ok) {
+          const data = await response.json()
+
+          setAiSummary({
+            executive_summary: data.executive_summary,
+            recommendations: data.recommendations || [],
+          })
+        }
+      } catch (error) {
+        console.warn('AI summary unavailable, using deterministic fallback:', error)
+      }
+    }
+
+    setLoading(false)
+  }
+
+  loadReportData()
+}, [supabase])
 
   const submittedDate = formatDate(audit?.submitted_at || audit?.created_at || null)
+  const tier = profile?.tier || 'free'
+  const isPaid = tier === 'starter' || tier === 'growth' || tier === 'enterprise'
 
   const timeWasters = audit?.time_wasters || []
   const currentTools = audit?.current_tools || []
@@ -169,6 +182,15 @@ export default function ReportsPage() {
       ? `Review how ${currentTools[0]} fits into your workflow and whether it should trigger or receive automation updates.`
       : 'Document the tools currently involved in your intake, follow-up, or reporting workflow.',
   ]
+
+
+
+  const displayedExecutiveSummary =
+  aiSummary?.executive_summary ||
+  'This Initial Audit identifies the primary workflow constraints, tool stack signals, and repetitive tasks you submitted. The goal is to turn those inputs into a clear automation roadmap without overstating outcomes.'
+
+  const displayedRecommendations =
+  aiSummary?.recommendations?.length ? aiSummary.recommendations : recommendations
 
   if (loading) {
     return (
@@ -250,9 +272,7 @@ export default function ReportsPage() {
           <h2 className="text-xl font-bold text-gray-900">Executive Summary</h2>
         </div>
         <p className="text-gray-700 leading-7">
-          Based on your Initial Audit, your current automation opportunity appears to center on{' '}
-          <span className="font-semibold text-gray-900">{fallback(audit.primary_pain)}</span>.
-          Your submitted tools and time-wasters help identify where a focused automation system can reduce repetitive work and improve follow-through.
+          {displayedExecutiveSummary}
         </p>
       </section>
 
@@ -313,28 +333,32 @@ export default function ReportsPage() {
         </div>
       </section>
 
-      <section id="time-savings" className="rounded-xl bg-white p-6 shadow">
-        <div className="mb-5 flex items-center gap-3">
-          <ClockIcon className="h-6 w-6 text-tre1-teal" />
-          <h2 className="text-xl font-bold text-gray-900">Potential Time Savings</h2>
-        </div>
+      {isPaid ? (
+        <section id="time-savings" className="rounded-xl bg-white p-6 shadow">
+          <div className="mb-5 flex items-center gap-3">
+            <ClockIcon className="h-6 w-6 text-tre1-teal" />
+            <h2 className="text-xl font-bold text-gray-900">Potential Time Savings</h2>
+          </div>
 
-        <p className="text-gray-700 leading-7">
-          This estimate is based on repetitive workflow signals submitted in your Initial Audit.
-          It is not a guarantee, but it highlights where automation may reduce manual effort.
-        </p>
+          <p className="text-gray-700 leading-7">
+            This estimate is based on repetitive workflow signals submitted in your Initial Audit.
+            It is not a guarantee, but it highlights where automation may reduce manual effort.
+          </p>
 
-        <div className="mt-5 space-y-3">
-          {timeWasters.slice(0, 3).map((item, index) => (
-            <div key={item} className="flex gap-3 rounded-lg bg-gray-50 p-4 text-gray-700">
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
-                {index + 1}
-              </span>
-              <p>{item}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+          <div className="mt-5 space-y-3">
+            {timeWasters.slice(0, 3).map((item, index) => (
+              <div key={item} className="flex gap-3 rounded-lg bg-gray-50 p-4 text-gray-700">
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
+                  {index + 1}
+                </span>
+                <p>{item}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <LockedSection title="Potential Time Savings" />
+      )}
 
       <section id="recommendations" className="rounded-xl bg-white p-6 shadow">
         <div className="mb-5 flex items-center gap-3">
@@ -343,7 +367,7 @@ export default function ReportsPage() {
         </div>
 
         <div className="space-y-3">
-          {recommendations.map((recommendation, index) => (
+          {(isPaid ? displayedRecommendations : displayedRecommendations.slice(0, 1)).map((recommendation, index) => (
             <div key={recommendation} className="flex gap-3 rounded-lg border border-gray-200 p-4 text-gray-700">
               <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
                 {index + 1}
@@ -352,7 +376,38 @@ export default function ReportsPage() {
             </div>
           ))}
         </div>
+
+        {!isPaid && (
+          <div className="mt-5">
+            <LockedSection title="Full Recommendations" />
+          </div>
+        )}
       </section>
+
+      {isPaid ? (
+        <section id="automation-blueprint" className="rounded-xl bg-white p-6 shadow">
+          <div className="mb-5 flex items-center gap-3">
+            <ClipboardDocumentListIcon className="h-6 w-6 text-tre1-teal" />
+            <h2 className="text-xl font-bold text-gray-900">Automation Blueprint</h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {[
+              'Primary automation target',
+              'Suggested workflow structure',
+              'Tools and integrations',
+              'Implementation phases',
+            ].map((item, index) => (
+              <div key={item} className="rounded-lg border border-gray-200 p-4">
+                <p className="text-sm font-semibold text-tre1-teal">Phase {index + 1}</p>
+                <p className="mt-1 text-gray-700">{item}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <LockedSection title="Automation Blueprint" />
+      )}
 
       <section id="consultation" className="rounded-2xl bg-tre1-teal p-8 text-white">
         <h2 className="text-2xl font-bold">Ready to turn this into an implementation plan?</h2>
@@ -407,5 +462,28 @@ function ReportList({ label, items }: { label: string; items: string[] }) {
         <p className="mt-1 text-gray-800">—</p>
       )}
     </div>
+  )
+}
+
+function LockedSection({ title }: { title: string }) {
+  return (
+    <section className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
+      <p className="text-sm font-semibold text-tre1-teal">
+        🔒 Unlock {title}
+      </p>
+
+      <p className="mx-auto mt-2 max-w-xl text-sm text-gray-600">
+        Upgrade to access your full automation blueprint, deeper recommendations,
+        and actionable next steps based on your Initial Audit.
+      </p>
+
+      <Link
+        href="/members/billing"
+        className="mt-5 inline-flex items-center rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+      >
+        Unlock Full Report
+        <ArrowRightIcon className="ml-2 h-4 w-4" />
+      </Link>
+    </section>
   )
 }
