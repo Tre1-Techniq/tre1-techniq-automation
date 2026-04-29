@@ -1,7 +1,7 @@
 // app/members/reports/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import {
@@ -9,6 +9,7 @@ import {
   ArrowRightIcon,
   BriefcaseIcon,
   CheckCircleIcon,
+  ChartBarIcon,
   ClipboardDocumentListIcon,
   CogIcon,
   DocumentTextIcon,
@@ -16,6 +17,16 @@ import {
   SparklesIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline'
+
+import UpgradePrompt from '@/components/UpgradePrompt'
+
+import {
+  calculateAutomationReadiness,
+  getScoreAwareRecommendations,
+  addToolContextToRecommendations,
+} from '@/lib/reports/automationReadiness'
+
+import { calculateTimeSavings } from '@/lib/reports/timeSavings'
 
 type ProfileData = {
   tier: string | null
@@ -43,6 +54,14 @@ type AuditData = {
   status: string | null
 }
 
+type DisplayRecommendation = {
+  title: string
+  why: string
+  nextStep: string
+  toolContext?: string
+  suggestedPath?: string
+}
+
 function formatDate(value: string | null) {
   if (!value) return 'Pending'
   const date = new Date(value)
@@ -56,15 +75,30 @@ function fallback(value: string | null | undefined) {
 export default function ReportsPage() {
   const supabase = createClient()
 
+  const [authEmail, setAuthEmail] = useState<string | null>(null)
+  const [summaryChecked, setSummaryChecked] = useState(false)
+
+  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [audit, setAudit] = useState<AuditData | null>(null)
+
   const [aiSummary, setAiSummary] = useState<{
     executive_summary: string
     recommendations: string[]
+    readiness_score?: number
+    readiness_band?: string
+    readiness_summary?: string
+    readiness_factors?: {
+      label: string
+      points: number
+      max: number
+      detail: string
+    }[]
   } | null>(null)
-  
-  const [profile, setProfile] = useState<ProfileData | null>(null)
-  const [audit, setAudit] = useState<AuditData | null>(null)
-  const [authEmail, setAuthEmail] = useState<string | null>(null)
+
   const [loading, setLoading] = useState(true)
+
+  const aiSummaryRequested = useRef(false)
+
 
 useEffect(() => {
   async function loadReportData() {
@@ -124,11 +158,14 @@ useEffect(() => {
       }
     }
 
+    const response = await fetch('/api/reports/ai-summary')
+
     if (resolvedAudit) {
       setAudit(resolvedAudit)
 
       try {
-        const response = await fetch('/api/reports/ai-summary')
+        if (aiSummaryRequested.current) return
+        aiSummaryRequested.current = true
 
         if (response.ok) {
           const data = await response.json()
@@ -136,7 +173,13 @@ useEffect(() => {
           setAiSummary({
             executive_summary: data.executive_summary,
             recommendations: data.recommendations || [],
+            readiness_score: data.readiness_score,
+            readiness_band: data.readiness_band,
+            readiness_summary: data.readiness_summary,
+            readiness_factors: data.readiness_factors || [],
           })
+
+          console.log('AI summary payload:', data)
         }
       } catch (error) {
         console.warn('AI summary unavailable, using deterministic fallback:', error)
@@ -153,8 +196,25 @@ useEffect(() => {
   const tier = profile?.tier || 'free'
   const isPaid = tier === 'starter' || tier === 'growth' || tier === 'enterprise'
 
+  const readiness = audit ? calculateAutomationReadiness(audit) : null
+
+  const scoreAwareRecommendations = readiness
+  ? getScoreAwareRecommendations(readiness)
+  : []
+
   const timeWasters = audit?.time_wasters || []
   const currentTools = audit?.current_tools || []
+
+  const toolAwareRecommendations =
+  scoreAwareRecommendations.length > 0
+    ? addToolContextToRecommendations({
+        recommendations: scoreAwareRecommendations,
+        currentTools,
+      })
+    : []
+
+  const readinessScore = readiness?.score ?? 0
+  const upgradeContext = getUpgradeContext(readinessScore)
 
   const findings = [
     audit?.primary_pain
@@ -171,31 +231,49 @@ useEffect(() => {
       : null,
   ].filter(Boolean) as string[]
 
-  const recommendations = [
-    audit?.primary_pain
-      ? `Start by clarifying the workflow connected to "${audit.primary_pain}" and identifying the first repeatable step.`
-      : 'Start by identifying the highest-friction workflow in your business.',
-    timeWasters[0]
-      ? `Prioritize automation around "${timeWasters[0]}" because it appears to be a recurring operational drag.`
-      : 'Prioritize one repetitive task that happens every week.',
-    currentTools.length
-      ? `Review how ${currentTools[0]} fits into your workflow and whether it should trigger or receive automation updates.`
-      : 'Document the tools currently involved in your intake, follow-up, or reporting workflow.',
+  const recommendations: DisplayRecommendation[] = [
+    {
+      title: 'Review your Initial Audit findings',
+      why: 'Your audit inputs identify the main workflow areas that may benefit from automation.',
+      nextStep: 'Review your report sections and note the workflow with the clearest friction.',
+    },
+    {
+      title: 'Prioritize your highest-friction workflow',
+      why: 'Automation works best when it starts with a repeatable workflow problem.',
+      nextStep: 'Choose one bottleneck to address first instead of trying to automate everything.',
+    },
+    {
+      title: 'Match your current tools to recommended resources',
+      why: 'Your tool stack helps determine which automation paths are practical.',
+      nextStep: 'Compare your current tools against the suggested resource library.',
+    },
   ]
 
-
+const displayedRecommendations: DisplayRecommendation[] =
+  toolAwareRecommendations.length > 0
+    ? toolAwareRecommendations
+    : aiSummary?.recommendations?.length
+      ? aiSummary.recommendations.map((item) => ({
+          title: item,
+          why: 'This recommendation is based on your Initial Audit inputs.',
+          nextStep: 'Review the related workflow and identify the first action you can take.',
+          toolContext: 'Tool-aware guidance will appear here once your submitted stack is mapped.',
+          suggestedPath: 'Start by identifying the workflow trigger, manual handoff, and desired result.',
+        }))
+      : recommendations
 
   const displayedExecutiveSummary =
-  aiSummary?.executive_summary ||
-  'This Initial Audit identifies the primary workflow constraints, tool stack signals, and repetitive tasks you submitted. The goal is to turn those inputs into a clear automation roadmap without overstating outcomes.'
+  aiSummary?.executive_summary || 'Loading your saved report summary...'
 
-  const displayedRecommendations =
-  aiSummary?.recommendations?.length ? aiSummary.recommendations : recommendations
+  console.log('LIVE readiness:', readiness?.score)
+  console.log('DB readiness:', aiSummary?.readiness_score)
+
+  const timeSavings = audit ? calculateTimeSavings(audit) : null
 
   if (loading) {
     return (
       <div className="rounded-xl bg-white p-8 shadow">
-        <p className="text-gray-600">Loading your report…</p>
+        <p className="text-gray-600">Loading your report...</p>
       </div>
     )
   }
@@ -232,11 +310,6 @@ useEffect(() => {
             <p className="mt-2 text-sm text-gray-500">
               Prepared for {fallback(audit.company_name)} · Submitted {submittedDate}
             </p>
-            <p className="text-gray-700 leading-7">
-              This Initial Audit identifies the primary workflow constraints, tool stack signals,
-              and repetitive tasks you submitted. The goal is to turn those inputs into a clear
-              automation roadmap without overstating outcomes.
-            </p>
           </div>
 
           <a
@@ -267,13 +340,76 @@ useEffect(() => {
       </section>
 
       <section className="rounded-xl bg-white p-6 shadow">
+        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="mb-3 flex items-center gap-3">
+              <ChartBarIcon className="h-6 w-6 text-tre1-teal" />
+              <h2 className="text-xl font-bold text-gray-900">Automation Readiness</h2>
+            </div>
+
+            <div className="flex items-end gap-2">
+              <span className="text-5xl font-bold tracking-tight text-gray-900">
+                {readiness ? `${readiness.score}%` : '...'}
+              </span>
+              <span className="pb-2 text-sm font-semibold text-tre1-teal">
+                {readiness?.band || upgradeContext.label}
+              </span>
+            </div>
+
+            <p className="mt-4 max-w-[100%] text-gray-700 leading-7">
+              {readiness?.summary || upgradeContext.message}
+            </p>
+          </div>
+
+          {!isPaid && (
+            <Link
+              href="/members/billing"
+              className="inline-flex shrink-0 items-center justify-center rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+            >
+              Unlock Readiness Details
+              <ArrowRightIcon className="ml-2 h-4 w-4" />
+            </Link>
+          )}
+        </div>
+
+        {isPaid ? (
+          <div className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-100 pt-5 md:grid-cols-2">
+            {(readiness?.factors || []).map((factor) => (
+              <div key={factor.label} className="rounded-lg bg-gray-50 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm font-semibold text-gray-900">{factor.label}</p>
+                  <p className="text-sm font-bold text-tre1-teal">
+                    {factor.points}/{factor.max}
+                  </p>
+                </div>
+                <p className="mt-2 text-sm text-gray-600">{factor.detail}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+            🔒 Unlock the factor-by-factor readiness assessment to see what is driving your score.
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl bg-white p-6 shadow">
         <div className="mb-5 flex items-center gap-3">
           <DocumentTextIcon className="h-6 w-6 text-tre1-teal" />
           <h2 className="text-xl font-bold text-gray-900">Executive Summary</h2>
         </div>
-        <p className="text-gray-700 leading-7">
-          {displayedExecutiveSummary}
-        </p>
+
+        {!aiSummary ? (
+          <div className="space-y-3">
+            <div className="h-4 max-w-[75%] animate-pulse rounded bg-gray-100" />
+            <div className="h-4 w-11/12 animate-pulse rounded bg-gray-100" />
+            <div className="h-4 w-10/12 animate-pulse rounded bg-gray-100" />
+          </div>
+        ) : (
+          <p className="text-gray-700 leading-7">
+            {displayedExecutiveSummary}
+          </p>
+        )}
       </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -341,12 +477,12 @@ useEffect(() => {
           </div>
 
           <p className="text-gray-700 leading-7">
-            This estimate is based on repetitive workflow signals submitted in your Initial Audit.
-            It is not a guarantee, but it highlights where automation may reduce manual effort.
+            {timeSavings?.summary ||
+              'This estimate is based on repetitive workflow signals submitted in your Initial Audit.'}
           </p>
 
           <div className="mt-5 space-y-3">
-            {timeWasters.slice(0, 3).map((item, index) => (
+            {(timeSavings?.tasks || []).slice(0, 3).map((item, index) => (
               <div key={item} className="flex gap-3 rounded-lg bg-gray-50 p-4 text-gray-700">
                 <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
                   {index + 1}
@@ -357,7 +493,39 @@ useEffect(() => {
           </div>
         </section>
       ) : (
-        <LockedSection title="Potential Time Savings" />
+        <section id="time-savings" className="rounded-xl bg-white p-6 shadow">
+          <div className="mb-5 flex items-center gap-3">
+            <ClockIcon className="h-6 w-6 text-tre1-teal" />
+            <h2 className="text-xl font-bold text-gray-900">Potential Time Savings</h2>
+          </div>
+
+          <div className="flex items-end gap-1">
+            <span className="text-4xl font-bold tracking-tight text-gray-900">
+              {timeSavings ? timeSavings.hoursPerWeek : '...'}
+            </span>
+            <span className="pb-1 text-sm font-semibold text-gray-700">hrs</span>
+            <span className="pb-1 text-sm text-gray-500">/week</span>
+          </div>
+
+          <p className="mt-4 max-w-3xl text-gray-700 leading-7">
+            {timeSavings?.summary ||
+              'Your audit identified repetitive workflow signals that may be good candidates for automation.'}
+          </p>
+
+          <div className="mt-6 rounded-lg bg-gray-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Locked Feature
+            </p>
+
+            <div className="mt-3">
+              <UpgradePrompt
+                title="Unlock your time-saving breakdown"
+                body="See which workflows are costing the most time and where automation may have the highest impact."
+                cta="Unlock Breakdown"
+              />
+            </div>
+          </div>
+        </section>
       )}
 
       <section id="recommendations" className="rounded-xl bg-white p-6 shadow">
@@ -366,21 +534,58 @@ useEffect(() => {
           <h2 className="text-xl font-bold text-gray-900">Recommendations</h2>
         </div>
 
-        <div className="space-y-3">
-          {(isPaid ? displayedRecommendations : displayedRecommendations.slice(0, 1)).map((recommendation, index) => (
-            <div key={recommendation} className="flex gap-3 rounded-lg border border-gray-200 p-4 text-gray-700">
+        {(isPaid ? displayedRecommendations : displayedRecommendations.slice(0, 1)).map((recommendation, index) => (
+          <div
+            key={`${recommendation.title}-${index}`}
+            className="rounded-lg border border-gray-200 p-5 text-gray-700"
+          >
+            <div className="flex items-start gap-3">
               <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
                 {index + 1}
               </span>
-              <p>{recommendation}</p>
+
+              <p className="font-semibold text-gray-900">
+                {recommendation.title}
+              </p>
             </div>
-          ))}
-        </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
+                  Tool context
+                </p>
+                <p className="mt-2 text-sm text-gray-600">
+                  {recommendation.toolContext || recommendation.why}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
+                  Suggested path
+                </p>
+                <p className="mt-2 text-sm text-gray-600">
+                  {recommendation.suggestedPath || recommendation.why}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
+                  Next step
+                </p>
+                <p className="mt-2 text-sm text-gray-600">
+                  {recommendation.nextStep}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
 
         {!isPaid && (
-          <div className="mt-5">
-            <LockedSection title="Full Recommendations" />
-          </div>
+          <UpgradePrompt
+            title="Unlock your full recommendation set"
+            body="You’re seeing the first recommendation. Unlock the full set to view the next actions based on your audit."
+            cta="Unlock Recommendations"
+          />
         )}
       </section>
 
@@ -406,33 +611,62 @@ useEffect(() => {
           </div>
         </section>
       ) : (
-        <LockedSection title="Automation Blueprint" />
+        <section id="automation-blueprint" className="rounded-xl bg-white p-6 shadow">
+          <div className="mb-5 flex items-center gap-3">
+            <ClipboardDocumentListIcon className="h-6 w-6 text-tre1-teal" />
+            <h2 className="text-xl font-bold text-gray-900">Automation Blueprint</h2>
+          </div>
+
+          <p className="max-w-[75%] text-gray-700 leading-7">
+            Your current stack includes{' '}
+            <span className="font-semibold text-gray-900">
+              {currentTools.length > 0 ? currentTools.slice(0, 3).join(', ') : 'tools that can be mapped into an automation workflow'}
+            </span>
+            . Based on your audit signals, there are likely opportunities to improve handoffs,
+            reduce manual work, or clarify system responsibilities.
+          </p>
+
+          <div className="mt-6 rounded-lg bg-gray-50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Locked Feature
+            </p>
+
+            <div className="mt-3">
+              <UpgradePrompt
+                title="Unlock your automation blueprint"
+                body="Turn your audit into a structured plan with workflow targets, integrations, and implementation steps."
+                cta="Unlock Blueprint"
+              />
+            </div>
+          </div>
+        </section>
       )}
 
-      <section id="consultation" className="rounded-2xl bg-tre1-teal p-8 text-white">
-        <h2 className="text-2xl font-bold">Ready to turn this into an implementation plan?</h2>
-        <p className="mt-3 max-w-3xl text-teal-50">
-          Schedule a focused recap session to review your audit, identify the highest-leverage automation opportunity, and map your next step.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
+      {!isPaid && (
+        <section className="rounded-xl bg-white p-8 shadow text-center">
+          <h2 className="text-xl font-bold text-gray-900">
+            Ready to turn this audit into an automation plan?
+          </h2>
+
+          <p className="mt-3 text-gray-600 max-w-xl mx-auto">
+            Upgrade to unlock your full blueprint, detailed recommendations, and
+            implementation roadmap based on your audit.
+          </p>
+
           <Link
             href="/members/billing"
-            className="inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-tre1-teal transition hover:bg-gray-100"
+            className="mt-6 inline-flex items-center rounded-full bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
           >
-            Schedule Consultation
-            <ArrowRightIcon className="ml-2 h-4 w-4" />
+            Unlock Your Full Report
+            <ArrowRightIcon className="ml-2 h-5 w-5" />
           </Link>
-          <Link
-            href="/members/library"
-            className="inline-flex items-center rounded-full bg-white/10 px-5 py-3 text-sm font-semibold text-white ring-1 ring-white/30 transition hover:bg-white/20"
-          >
-            Browse Resources
-          </Link>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   )
 }
+
+
 
 function ReportRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
@@ -465,25 +699,34 @@ function ReportList({ label, items }: { label: string; items: string[] }) {
   )
 }
 
-function LockedSection({ title }: { title: string }) {
-  return (
-    <section className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
-      <p className="text-sm font-semibold text-tre1-teal">
-        🔒 Unlock {title}
-      </p>
+function getUpgradeContext(score: number) {
+  if (score < 40) {
+    return {
+      label: 'Early Stage',
+      message:
+        'You’re at the early stage — unlocking your blueprint will clarify your first automation opportunity.',
+    }
+  }
 
-      <p className="mx-auto mt-2 max-w-xl text-sm text-gray-600">
-        Upgrade to access your full automation blueprint, deeper recommendations,
-        and actionable next steps based on your Initial Audit.
-      </p>
+  if (score < 60) {
+    return {
+      label: 'Emerging',
+      message:
+        'You’re close — the next recommendations can move you into a stronger automation position.',
+    }
+  }
 
-      <Link
-        href="/members/billing"
-        className="mt-5 inline-flex items-center rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-      >
-        Unlock Full Report
-        <ArrowRightIcon className="ml-2 h-4 w-4" />
-      </Link>
-    </section>
-  )
+  if (score < 80) {
+    return {
+      label: 'Ready',
+      message:
+        'You have enough clarity — unlock your blueprint to begin structured implementation.',
+    }
+  }
+
+  return {
+    label: 'High Readiness',
+    message:
+      'You’re ready to execute — unlock your roadmap to move quickly into implementation.',
+  }
 }
