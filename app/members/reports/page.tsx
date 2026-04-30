@@ -406,9 +406,10 @@ const displayedRecommendations: DisplayRecommendation[] =
             <div className="h-4 w-10/12 animate-pulse rounded bg-gray-100" />
           </div>
         ) : (
-          <p className="text-gray-700 leading-7">
-            {displayedExecutiveSummary}
-          </p>
+          <div
+            className="text-gray-700 leading-7 whitespace-pre-line"
+            dangerouslySetInnerHTML={{ __html: displayedExecutiveSummary }}
+          />
         )}
       </section>
 
