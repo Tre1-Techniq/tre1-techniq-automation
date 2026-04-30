@@ -60,7 +60,7 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-gray-900">Payments and Refunds</h2>
             <p className="text-gray-700 leading-7">
-              All payments are processed via Stripe.
+              All payments are processed via Paddle.
             </p>
             <p className="text-gray-700 leading-7">
               Payments are final and non-refundable for any digital downloads and/or services. Subscriptions may be cancelled anytime via the User Settings page.
