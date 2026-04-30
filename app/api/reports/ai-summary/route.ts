@@ -106,7 +106,7 @@ function buildDeterministicExecutiveSummary({
 
   return {
     headline,
-    readinessSummary: `Your Automation Readiness Score is <strong>${score}</strong>, placing you in the <strong>${band}</strong> readiness band. The primary constraint right now is ${weakestFactor}.`,
+    readinessSummary: `Your Automation Readiness Score is <strong>${score}</strong>, placing you in the <strong>${band}</strong> phase. The primary constraint right now is ${weakestFactor}.`,
     timeSavingsSummary,
     painPointSummary: `Your primary bottleneck appears to be ${pain}, which is creating recurring inefficiencies.`,
     toolContextSummary: hasTools
