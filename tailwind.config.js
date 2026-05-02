@@ -9,7 +9,7 @@ module.exports = {
     extend: {
       colors: {
         'tre1-teal': '#00B5A5',
-        'tre1-orange': '#FF8A3D',
+        'tre1-orange': '#FA9002',
         'tre1-dark': '#1E2022',
         'tre1-gray': '#404855',
         'tre1-light': '#F3F4F6',

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient as createServerSupabaseClient } from '@/lib/server/supabase'
-
+import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js'
 import {
   calculateAutomationReadiness,
   getScoreAwareRecommendations,
@@ -121,6 +121,11 @@ function buildDeterministicExecutiveSummary({
 export async function GET() {
   const supabase = await createServerSupabaseClient()
 
+  const supabaseAdmin = createSupabaseAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   const {
     data: { user },
     error: userError,
@@ -159,7 +164,7 @@ export async function GET() {
 
   const typedAudit = audit as AuditData
 
-  const { data: existingReport, error: reportError } = await supabase
+  const { data: existingReport, error: reportError } = await supabaseAdmin
     .from('audit_reports')
     .select(`
       executive_summary,
@@ -169,25 +174,25 @@ export async function GET() {
       readiness_score,
       readiness_band,
       readiness_summary,
-      readiness_factors
+      readiness_factors,
+      unlocked
     `)
     .eq('audit_request_id', typedAudit.id)
     .maybeSingle()
 
   if (reportError) {
+    console.error('[AI SUMMARY] Saved report lookup failed', reportError)
+
     return NextResponse.json(
-      { error: 'Saved report lookup failed' },
+      { error: 'Saved report lookup failed', reportError },
       { status: 500 }
     )
   }
 
+  const isUnlocked = existingReport?.unlocked === true
+
   // CRITICAL: cache check happens BEFORE OpenAI
   if (existingReport?.executive_summary_json || existingReport?.executive_summary) {
-    console.log('[AI SUMMARY] Returning cached summary', {
-      auditId: typedAudit.id,
-      source: existingReport.summary_source,
-    })
-
     return NextResponse.json({
       executive_summary: existingReport.executive_summary,
       executive_summary_json: existingReport.executive_summary_json,
@@ -197,6 +202,7 @@ export async function GET() {
       readiness_summary: existingReport.readiness_summary,
       readiness_factors: existingReport.readiness_factors || [],
       summary_source: existingReport.summary_source,
+      unlocked: isUnlocked,
     })
   }
 
@@ -295,19 +301,21 @@ ${JSON.stringify(summary)}
 
   const executiveSummaryText = buildExecutiveSummaryText(finalSummary)
 
-  await supabase
+  await supabaseAdmin
   .from('audit_reports')
-  .upsert({
-    audit_request_id: typedAudit.id,
-    executive_summary: executiveSummaryText,
-    executive_summary_json: finalSummary,
-    summary_source: summarySource,
-    readiness_score: readiness.score,
-    readiness_band: readiness.band,
-    recommendations: structuredRecommendations,
-  }, {
-    onConflict: 'audit_request_id',
-  })
+  .upsert(
+    {
+      audit_request_id: typedAudit.id,
+      executive_summary: executiveSummaryText,
+      executive_summary_json: finalSummary,
+      summary_source: summarySource,
+      recommendations: structuredRecommendations,
+      readiness_score: readiness.score,
+      readiness_band: readiness.band,
+      unlocked: isUnlocked,
+    },
+    { onConflict: 'audit_request_id' }
+  )
 
   return NextResponse.json({
     executive_summary: executiveSummaryText,
@@ -315,8 +323,9 @@ ${JSON.stringify(summary)}
     recommendations: structuredRecommendations,
     readiness_score: readiness.score,
     readiness_band: readiness.band,
-    readiness_summary: existingReport?.readiness_summary,
+    readiness_summary: existingReport?.readiness_summary ?? null,
     readiness_factors: readiness.factors || [],
     summary_source: summarySource,
+    unlocked: isUnlocked,
   })
 }

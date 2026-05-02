@@ -260,14 +260,12 @@ export default function MembersDashboard() {
                       {tier.charAt(0).toUpperCase() + tier.slice(1)} Tier
                     </span>
 
-                    {tier !== 'enterprise' && (
-                      <Link
-                        href="/members/billing"
-                        className="inline-flex items-center rounded-full bg-white px-3 py-1 font-semibold text-tre1-teal transition hover:bg-gray-100"
-                      >
-                        Upgrade
-                      </Link>
-                    )}
+                    <Link
+                      href="/members/reports"
+                      className="inline-flex items-center rounded-full bg-white px-3 py-1 font-semibold text-tre1-teal transition hover:bg-gray-100"
+                    >
+                      Unlock Report
+                    </Link>
 
                     <span className="hidden h-5 w-px bg-white/30 sm:inline-block" />
 
@@ -332,7 +330,7 @@ export default function MembersDashboard() {
               </div>
 
               <Link
-                href={isPaid ? '/members/reports#consultation' : '/members/billing'}
+                href="/members/reports#consultation"
                 className="mt-auto inline-flex items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
               >
                 {isPaid ? 'Book a Consultation' : 'Unlock Details'}
@@ -412,7 +410,7 @@ export default function MembersDashboard() {
               </div>
 
               <Link
-                href={isPaid ? '/members/reports#time-savings' : '/members/billing'}
+                href="/members/reports#time-savings"
                 className="mt-auto inline-flex items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
               >
                 {isPaid ? 'View Your Detailed Report' : 'Unlock Breakdown'}
@@ -448,7 +446,7 @@ export default function MembersDashboard() {
               </div>
 
               <Link
-                href={isPaid ? '/members/reports#recommendations' : '/members/billing'}
+                href="/members/reports#recommendations"
                 className="mt-auto inline-flex items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
               >
                 {isPaid ? 'View Details' : 'Unlock Full List'}

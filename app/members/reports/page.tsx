@@ -93,6 +93,7 @@ export default function ReportsPage() {
       max: number
       detail: string
     }[]
+    unlocked?: boolean
   } | null>(null)
 
   const [loading, setLoading] = useState(true)
@@ -177,9 +178,11 @@ useEffect(() => {
             readiness_band: data.readiness_band,
             readiness_summary: data.readiness_summary,
             readiness_factors: data.readiness_factors || [],
+            unlocked: data.unlocked === true,
           })
 
           console.log('AI summary payload:', data)
+          
         }
       } catch (error) {
         console.warn('AI summary unavailable, using deterministic fallback:', error)
@@ -195,6 +198,9 @@ useEffect(() => {
   const submittedDate = formatDate(audit?.submitted_at || audit?.created_at || null)
   const tier = profile?.tier || 'free'
   const isPaid = tier === 'starter' || tier === 'growth' || tier === 'enterprise'
+
+  const isReportUnlocked = aiSummary?.unlocked === true
+  const canViewPremiumReport = isPaid || isReportUnlocked
 
   const readiness = audit ? calculateAutomationReadiness(audit) : null
 
@@ -360,19 +366,9 @@ const displayedRecommendations: DisplayRecommendation[] =
               {readiness?.summary || upgradeContext.message}
             </p>
           </div>
-
-          {!isPaid && (
-            <Link
-              href="/members/billing"
-              className="inline-flex shrink-0 items-center justify-center rounded-full bg-orange-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
-            >
-              Unlock Readiness Details
-              <ArrowRightIcon className="ml-2 h-4 w-4" />
-            </Link>
-          )}
         </div>
 
-        {isPaid ? (
+        {canViewPremiumReport ? (
           <div className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-100 pt-5 md:grid-cols-2">
             {(readiness?.factors || []).map((factor) => (
               <div key={factor.label} className="rounded-lg bg-gray-50 p-4">
@@ -388,7 +384,13 @@ const displayedRecommendations: DisplayRecommendation[] =
           </div>
         ) : (
           <div className="mt-6 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-            🔒 Unlock the factor-by-factor readiness assessment to see what is driving your score.
+            {!canViewPremiumReport && (
+              <UpgradePrompt
+                title="Unlock Readiness Details"
+                body="See the detailed factors behind your readiness score, including process clarity, tool stack strength, execution readiness, and where your system needs the most improvement."
+                cta="Unlock Readiness Details"
+              />
+            )}
           </div>
         )}
       </section>
@@ -470,7 +472,7 @@ const displayedRecommendations: DisplayRecommendation[] =
         </div>
       </section>
 
-      {isPaid ? (
+      {canViewPremiumReport ? (
         <section id="time-savings" className="rounded-xl bg-white p-6 shadow">
           <div className="mb-5 flex items-center gap-3">
             <ClockIcon className="h-6 w-6 text-tre1-teal" />
@@ -581,7 +583,7 @@ const displayedRecommendations: DisplayRecommendation[] =
           </div>
         ))}
 
-        {!isPaid && (
+        {!canViewPremiumReport && (
           <UpgradePrompt
             title="Unlock your full recommendation set"
             body="You’re seeing the first recommendation. Unlock the full set to view the next actions based on your audit."
@@ -590,7 +592,7 @@ const displayedRecommendations: DisplayRecommendation[] =
         )}
       </section>
 
-      {isPaid ? (
+      {canViewPremiumReport ? (
         <section id="automation-blueprint" className="rounded-xl bg-white p-6 shadow">
           <div className="mb-5 flex items-center gap-3">
             <ClipboardDocumentListIcon className="h-6 w-6 text-tre1-teal" />
@@ -643,24 +645,19 @@ const displayedRecommendations: DisplayRecommendation[] =
         </section>
       )}
 
-      {!isPaid && (
+      {!canViewPremiumReport && (
         <section className="rounded-xl bg-white p-8 shadow text-center">
-          <h2 className="text-xl font-bold text-gray-900">
-            Ready to turn this audit into an automation plan?
-          </h2>
-
-          <p className="mt-3 text-gray-600 max-w-xl mx-auto">
-            Upgrade to unlock your full blueprint, detailed recommendations, and
-            implementation roadmap based on your audit.
-          </p>
-
-          <Link
-            href="/members/billing"
-            className="mt-6 inline-flex items-center rounded-full bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
-          >
-            Unlock Your Full Report
-            <ArrowRightIcon className="ml-2 h-5 w-5" />
-          </Link>
+          <div className="mb-5 flex items-center gap-3">
+            <CogIcon className="h-6 w-6 text-tre1-teal" />
+            <h2 className="text-xl font-bold text-gray-900">
+              Ready to turn this audit into an automation plan?
+            </h2>
+          </div>
+          <UpgradePrompt
+            title="Unlock Your Full Report"
+            body="Unlock the full implementation path, recommendations, time savings breakdown, and next-step guidance based on your audit."
+            cta="Unlock Full Report"
+          />
         </section>
       )}
     </div>

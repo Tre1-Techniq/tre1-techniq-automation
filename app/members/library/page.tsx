@@ -127,19 +127,25 @@ export default async function LibraryPage() {
         <div className="bg-gradient-to-r from-tre1-teal to-teal-600 rounded-xl shadow p-6 text-white">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-xl font-bold">Unlock More Resources</h3>
-              <p className="mt-1 opacity-90">
+              <h3 className="mb-2 text-xl font-bold">* Unlock More Resources</h3>
+              <button
+                disabled
+                className="inline-flex items-center rounded-full bg-gray-200 px-5 py-2 text-sm font-semibold text-gray-500 cursor-not-allowed"
+              >
+                Premium Access Coming Soon
+              </button>
+              {/* <p className="mt-1 opacity-90">
                 Upgrade to{' '}
                 {userTier === 'free' ? 'Starter' : userTier === 'starter' ? 'Growth' : 'Enterprise'} Tier
                 {' '}to access {lockedPDFs.length} additional guide{lockedPDFs.length !== 1 ? 's' : ''}
-              </p>
+              </p> */}
             </div>
-            <Link
+            {/* <Link
               href="/members/billing"
               className="bg-white text-tre1-teal font-semibold px-6 py-3 rounded-lg hover:bg-gray-50 transition whitespace-nowrap"
             >
               Upgrade Plan
-            </Link>
+            </Link> */}
           </div>
         </div>
       )}
@@ -253,13 +259,14 @@ export default async function LibraryPage() {
                               <span>Download</span>
                             </Link>
                           ) : (
-                            <Link
-                              href={`/api/pdfs/${pdf.slug}/locked`}
+                            <button
+                              // href={`/api/pdfs/${pdf.slug}/locked`}
+                              disabled
                               className="flex items-center space-x-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
                             >
                               <LockClosedIcon className="h-4 w-4" />
-                              <span>Upgrade</span>
-                            </Link>
+                              <span>COMING SOON!</span>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -284,6 +291,9 @@ export default async function LibraryPage() {
 
       <div className="bg-white rounded-xl shadow p-6">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Tier Access Levels</h3>
+        <p className="mt-2 mb-3 text-sm text-gray-600">
+          * Premium library resources will be included in future paid membership tiers.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {['free', 'starter', 'growth', 'enterprise'].map((tier) => {
             const accessibleCount = allPDFs.filter(

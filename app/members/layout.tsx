@@ -87,7 +87,9 @@ export default async function MembersLayout({
             tier={defaultProfile.tier}
             userName={defaultProfile.full_name || defaultProfile.email.split('@')[0] || 'Member'}
           />
-          <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+            <main className="max-w-7xl mx-auto px-4 py-8">
+                {children}
+            </main>
           <Footer />
         </div>
       )
