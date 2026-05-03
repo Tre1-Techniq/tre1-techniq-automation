@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient as createServerSupabaseClient } from '@/lib/server/supabase'
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js'
-import {
-  calculateAutomationReadiness,
-  getContextAwareRecommendations
-} from '@/lib/reports/automationReadiness'
+import { calculateAutomationReadiness } from '@/lib/reports/automationReadiness'
+import { getContextAwareRecommendations } from '@/lib/reports/recommendationTemplates'
+
 
 import { calculateTimeSavings } from '@/lib/reports/timeSavings'
 import OpenAI from 'openai'

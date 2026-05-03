@@ -24,11 +24,11 @@ import UpgradePrompt from '@/components/UpgradePrompt'
 
 import {
   calculateAutomationReadiness,
-  getScoreAwareRecommendations,
-  addToolContextToRecommendations,
 } from '@/lib/reports/automationReadiness'
 
 import { calculateTimeSavings } from '@/lib/reports/timeSavings'
+
+import { getContextAwareRecommendations } from '@/lib/reports/recommendationTemplates'
 
 type ProfileData = {
   tier: string | null
@@ -272,18 +272,14 @@ useEffect(() => {
 
   const readiness = audit ? calculateAutomationReadiness(audit) : null
 
-  const scoreAwareRecommendations = readiness
-  ? getScoreAwareRecommendations(readiness)
-  : []
-
   const timeWasters = audit?.time_wasters || []
   const currentTools = audit?.current_tools || []
 
   const toolAwareRecommendations =
-  scoreAwareRecommendations.length > 0
-    ? addToolContextToRecommendations({
-        recommendations: scoreAwareRecommendations,
-        currentTools,
+  audit && readiness
+    ? getContextAwareRecommendations({
+        audit,
+        readiness,
       })
     : []
 

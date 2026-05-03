@@ -17,11 +17,8 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline'
 
-import {
-  calculateAutomationReadiness,
-  getScoreAwareRecommendations,
-  addToolContextToRecommendations,
-} from '@/lib/reports/automationReadiness'
+import { calculateAutomationReadiness } from '@/lib/reports/automationReadiness'
+import { getContextAwareRecommendations } from '@/lib/reports/recommendationTemplates'
 
 import { calculateTimeSavings } from '@/lib/reports/timeSavings'
 
@@ -60,6 +57,36 @@ export default function MembersDashboard() {
   const [audit, setAudit] = useState<AuditData | null>(null)
   const [authEmail, setAuthEmail] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const tier = profile?.tier || 'free'
+  const isPaid = tier === 'starter' || tier === 'growth' || tier === 'enterprise'
+
+  const recentActivity: {
+    action: string
+    time: string
+    icon: string
+  }[] = audit
+    ? [
+        {
+          action: 'Initial Audit Submitted',
+          time: audit.created_at
+            ? new Date(audit.created_at).toLocaleDateString()
+            : 'Recently',
+          icon: '🧾',
+        },
+        {
+          action: isPaid ? 'Member Access Active' : 'Report Preview Available',
+          time: isPaid ? 'Active' : 'Ready to review',
+          icon: isPaid ? '🔓' : '🔒',
+        },
+      ]
+    : [
+        {
+          action: 'No audit submitted yet',
+          time: 'Start your Initial Audit to generate report activity',
+          icon: '📝',
+        },
+      ]
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -129,9 +156,6 @@ export default function MembersDashboard() {
     loadDashboardData()
   }, [supabase])
 
-  const tier = profile?.tier || 'free'
-  const isPaid = tier === 'starter' || tier === 'growth' || tier === 'enterprise'
-
   const firstName = useMemo(() => {
     return (
       profile?.first_name?.trim() ||
@@ -186,55 +210,23 @@ export default function MembersDashboard() {
     },
   ]
 
-  const readiness = audit ? calculateAutomationReadiness(audit) : null
+const readiness = audit ? calculateAutomationReadiness(audit) : null
 
-  const recentActivity = [
-    { action: 'Account created', time: 'Just now', icon: '🎉' },
-    { action: 'Accessed PDF library', time: '5 min ago', icon: '📚' },
-    { action: 'Completed profile setup', time: '10 min ago', icon: '✅' },
-  ]
+const timeSavings = audit ? calculateTimeSavings(audit) : null
 
-  const scoreAwareRecommendations = readiness
-  ? getScoreAwareRecommendations(readiness)
-  : []
-
-  const timeSavings = audit ? calculateTimeSavings(audit) : null
-
-  const toolAwareRecommendations =
-  scoreAwareRecommendations.length > 0
-    ? addToolContextToRecommendations({
-        recommendations: scoreAwareRecommendations,
-        currentTools: audit?.current_tools,
+const toolAwareRecommendations =
+  audit && readiness
+    ? getContextAwareRecommendations({
+        audit,
+        readiness,
       })
     : []
 
-  const recommendations =
-  toolAwareRecommendations.length > 0
-    ? toolAwareRecommendations
-    : [
-        {
-          title: 'Review your Initial Audit findings',
-          why: 'Your audit inputs provide the foundation for your automation plan.',
-          nextStep: 'Open your report and review the highest-friction workflow areas.',
-        },
-        {
-          title: 'Prioritize your highest-friction workflow',
-          why: 'Starting with the biggest bottleneck usually creates the clearest first win.',
-          nextStep: 'Choose one workflow to improve before adding more automation ideas.',
-        },
-        {
-          title: 'Match your tools to recommended resources',
-          why: 'Tool alignment helps avoid building automation around disconnected systems.',
-          nextStep: 'Review the library for resources that match your current workflow stack.',
-        },
-      ]
+const recommendations = toolAwareRecommendations
 
-  const visibleRecommendations = isPaid ? recommendations : recommendations.slice(0, 1)
-
-  const timeSavingTasks = [
-    ...(audit?.time_wasters || []),
-    audit?.primary_pain,
-  ].filter(Boolean) as string[]
+const visibleRecommendations = isPaid
+  ? recommendations
+  : recommendations.slice(0, 1)
 
   const visibleTimeSavingTasks = isPaid ? (timeSavings?.tasks || []).slice(0, 2) : []
 
