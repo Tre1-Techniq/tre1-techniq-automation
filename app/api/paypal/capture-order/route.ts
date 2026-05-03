@@ -61,22 +61,57 @@ export async function POST(req: Request) {
   }
 
   // 🔥 2. FIND LATEST AUDIT
-  const { data: audit, error: auditError } = await supabase
+const normalizedEmail = user.email?.trim().toLowerCase()
+
+if (!normalizedEmail) {
+  return NextResponse.json(
+    { error: "User email not found" },
+    { status: 400 }
+  )
+}
+
+const { data: audit, error: auditError } = await supabaseAdmin
+  .from("audit_requests")
+  .select("id, submitted_by_user_id, contact_email, submitted_email")
+  .or(
+    `submitted_by_user_id.eq.${user.id},contact_email.eq.${normalizedEmail},submitted_email.eq.${normalizedEmail}`
+  )
+  .order("created_at", { ascending: false })
+  .limit(1)
+  .maybeSingle()
+
+console.log("[PAYPAL API] audit lookup", { audit, auditError })
+
+if (auditError) {
+  return NextResponse.json(
+    { error: "Audit lookup failed", auditError },
+    { status: 500 }
+  )
+}
+
+if (!audit) {
+  return NextResponse.json(
+    { error: "Audit not found" },
+    { status: 404 }
+  )
+}
+
+// Backfill ownership if this audit was captured by email before auth linkage.
+if (!audit.submitted_by_user_id) {
+  const { error: linkAuditError } = await supabaseAdmin
     .from("audit_requests")
-    .select("id")
-    .eq("submitted_by_user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+    .update({ submitted_by_user_id: user.id })
+    .eq("id", audit.id)
+    .is("submitted_by_user_id", null)
 
-  console.log("[PAYPAL API] audit lookup", { audit, auditError });
-
-  if (auditError || !audit) {
-    return NextResponse.json(
-      { error: "Audit not found", auditError },
-      { status: 404 }
-    );
+  if (linkAuditError) {
+    console.error("[PAYPAL API] Failed to link audit to user", {
+      auditId: audit.id,
+      userId: user.id,
+      linkAuditError,
+    })
   }
+}
 
   // 🔥 3. UNLOCK REPORT (WITH VERIFICATION)
   const { data: unlockData, error: unlockError } = await supabaseAdmin

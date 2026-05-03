@@ -5,6 +5,7 @@ export type AutomationReadinessAuditInput = {
   automation_goals?: string | null
   integration_needs?: string | null
   budget?: string | null
+  industry?: string | null
 }
 
 export type AutomationReadinessResult = {
@@ -19,6 +20,56 @@ export type AutomationReadinessResult = {
   }[]
 }
 
+export type ToolAwareRecommendation = ScoreAwareRecommendation & {
+  toolContext?: string
+  suggestedPath?: string
+}
+
+function wordCount(value?: string | null) {
+  if (!value) return 0
+  return value.trim().split(/\s+/).filter(Boolean).length
+}
+
+function hasOperationalDetail(value?: string | null) {
+  if (!value) return false
+
+  const text = value.toLowerCase()
+
+  return [
+    'daily',
+    'weekly',
+    'monthly',
+    'hours',
+    'team',
+    'customer',
+    'lead',
+    'handoff',
+    'manual',
+    'follow up',
+    'follow-up',
+    'crm',
+    'email',
+    'report',
+    'approval',
+    'intake',
+    'tracking',
+    'update',
+    'qualify',
+    'publish',
+    'review',
+  ].some((term) => text.includes(term))
+}
+
+function specificityLevel(value?: string | null) {
+  const count = wordCount(value)
+
+  if (!value || count === 0) return 0
+  if (count < 4) return 1
+  if (count < 10) return 2
+  if (hasOperationalDetail(value)) return 4
+  return 3
+}
+
 function hasText(value?: string | null) {
   return Boolean(value && value.trim().length > 0)
 }
@@ -28,28 +79,31 @@ function textLength(value?: string | null) {
 }
 
 function scoreBudget(budget?: string | null) {
-  if (!hasText(budget)) return 2
+  if (!budget) return 0
 
-  const normalized = budget!.toLowerCase()
+  const value = budget.toLowerCase().trim()
 
-  if (
-    normalized.includes('not sure') ||
-    normalized.includes('unsure') ||
-    normalized.includes('unknown') ||
-    normalized.includes('exploring')
-  ) {
-    return 2
+  if (value.includes('$3,000') || value.includes('$5000') || value.includes('$5,000')) {
+    return 10
   }
 
-  if (
-    normalized.includes('under') ||
-    normalized.includes('low') ||
-    normalized.includes('small')
-  ) {
+  if (value.includes('$1,000') && value.includes('$3,000')) {
+    return 8
+  }
+
+  if (value.includes('$500') && value.includes('$1,000')) {
     return 5
   }
 
-  return 10
+  if (value.includes('under') || value.includes('less than')) {
+    return 3
+  }
+
+  if (value.includes('not sure') || value.includes('unknown')) {
+    return 0
+  }
+
+  return 5
 }
 
 function getBand(score: number): AutomationReadinessResult['band'] {
@@ -78,10 +132,41 @@ function getSummary(score: number) {
 export function calculateAutomationReadiness(
   audit: AutomationReadinessAuditInput
 ): AutomationReadinessResult {
-  const painLength = textLength(audit.primary_pain)
-  const painPoints = painLength >= 80 ? 15 : painLength > 0 ? 10 : 0
+  const painLevel = specificityLevel(audit.primary_pain)
 
-  const integrations = hasText(audit.integration_needs) ? 15 : 0
+  const goalText = Array.isArray(audit.automation_goals)
+    ? audit.automation_goals.join(' ')
+    : audit.automation_goals || ''
+
+  const goalLevel = specificityLevel(goalText)
+
+  const integrationText = Array.isArray(audit.integration_needs)
+    ? audit.integration_needs.join(' ')
+    : audit.integration_needs || ''
+
+  const integrationLevel = specificityLevel(integrationText)
+
+  const painPoints =
+    painLevel >= 4
+      ? 15
+      : painLevel === 3
+        ? 12
+        : painLevel === 2
+          ? 8
+          : painLevel === 1
+            ? 5
+            : 0
+
+  const integrations =
+    integrationLevel >= 4
+      ? 15
+      : integrationLevel === 3
+        ? 12
+        : integrationLevel === 2
+          ? 8
+          : integrationLevel === 1
+            ? 5
+            : 0
 
   const budget = scoreBudget(audit.budget)
 
@@ -97,130 +182,193 @@ export function calculateAutomationReadiness(
 
   const toolsCount = audit.current_tools?.length || 0
   const tools =
-    toolsCount >= 3
+    toolsCount >= 4
       ? 10
-      : toolsCount === 2
-        ? 7
-        : toolsCount === 1
-          ? 4
-          : 0
+      : toolsCount === 3
+        ? 8
+        : toolsCount === 2
+          ? 6
+          : toolsCount === 1
+            ? 3
+            : 0
 
   const goals =
-    textLength(audit.automation_goals) >= 80
+    goalLevel >= 4
       ? 20
-      : hasText(audit.automation_goals)
-        ? 10
-        : 0
+      : goalLevel === 3
+        ? 15
+        : goalLevel === 2
+          ? 10
+          : goalLevel === 1
+            ? 5
+            : 0
 
   const executionReadiness =
-    textLength(audit.primary_pain) >= 120 && textLength(audit.automation_goals) >= 120
+    painLevel >= 4 && goalLevel >= 4
       ? 15
-      : textLength(audit.primary_pain) >= 80 && textLength(audit.automation_goals) >= 80
+      : painLevel >= 3 && goalLevel >= 3
         ? 10
-        : textLength(audit.primary_pain) >= 40 && textLength(audit.automation_goals) >= 40
+        : painLevel >= 2 && goalLevel >= 2
           ? 5
-          : 0     
+          : 0
 
   const factors = [
     {
-  label: 'Pain clarity',
-  points: painPoints,
-  max: 15,
-  detail:
-    painPoints === 15
-      ? 'Primary pain point is detailed and clearly identified.'
-      : painPoints === 10
-        ? 'Primary pain point is identified but needs more operational detail.'
-        : 'Primary pain point needs more detail.',
-  },
-  {
-    label: 'Repetitive task signals',
-    points: timeWasters,
-    max: 15,
-    detail:
-      timeWastersCount >= 3
-        ? 'Multiple repeatable workflow frictions were identified.'
-        : timeWastersCount === 2
-          ? 'Two repeatable workflow frictions were identified.'
-          : timeWastersCount === 1
-            ? 'One repeatable workflow friction was identified.'
-            : 'No repeatable workflow friction was identified.',
-  },
-  {
-    label: 'Tool stack clarity',
-    points: tools,
-    max: 10,
-    detail:
-      toolsCount >= 3
-        ? 'Multiple current tools were provided.'
-        : toolsCount === 2
-          ? 'Two current tools were provided.'
-          : toolsCount === 1
-            ? 'One current tool was provided.'
-            : 'Current tool stack needs more detail.',
-  },
-  {
-    label: 'Automation goal clarity',
-    points: goals,
-    max: 20,
-    detail:
-      goals === 20
-        ? 'Automation goals are detailed enough to guide planning.'
-        : goals === 10
-          ? 'Automation goals are present but need more specificity.'
-          : 'Automation goals are missing or unclear.',
-  },
-  {
-  label: 'Integration opportunity',
-  points: integrations,
-  max: 15,
-  detail: integrations
-    ? 'Integration needs suggest a clear systems opportunity.'
-    : 'Integration needs are not yet defined.',
-  },
-  {
-    label: 'Budget readiness',
-    points: budget,
-    max: 10,
-    detail:
-      budget === 10
-        ? 'Budget signal is defined.'
-        : budget === 5
-          ? 'Budget signal suggests a cautious starting point.'
-          : 'Budget signal is early or uncertain.',
-  },
-  {
-    label: 'Execution readiness',
-    points: executionReadiness,
-    max: 15,
-    detail:
-      executionReadiness === 15
-        ? 'Pain points and automation goals are detailed enough to support implementation planning.'
-        : executionReadiness === 10
-          ? 'Inputs show meaningful planning signals, but implementation details could be stronger.'
-          : executionReadiness === 5
-            ? 'Some execution signals are present, but the workflow needs more detail.'
-            : 'Execution readiness is limited because workflow and goal detail are still thin.',
-  },
+      label: 'Pain clarity',
+      points: painPoints,
+      max: 15,
+      detail:
+        painLevel >= 4
+          ? 'Primary pain point includes operational detail and a clear workflow signal.'
+          : painLevel === 3
+            ? 'Primary pain point is specific enough to guide initial automation planning.'
+            : painLevel === 2
+              ? 'Primary pain point is identified but needs more operational detail.'
+              : painLevel === 1
+                ? 'Primary pain point is present but too vague to guide automation planning.'
+                : 'No primary pain point was provided.',
+    },
+    {
+      label: 'Repetitive task signals',
+      points: timeWasters,
+      max: 15,
+      detail:
+        timeWastersCount >= 3
+          ? 'Multiple repeatable workflow frictions were identified.'
+          : timeWastersCount === 2
+            ? 'Two repeatable workflow frictions were identified.'
+            : timeWastersCount === 1
+              ? 'One repeatable workflow friction was identified.'
+              : 'No repeatable workflow friction was identified.',
+    },
+    {
+      label: 'Tool stack clarity',
+      points: tools,
+      max: 10,
+      detail:
+        toolsCount >= 4
+          ? 'A multi-tool stack was provided, suggesting usable workflow infrastructure.'
+          : toolsCount === 3
+            ? 'Several current tools were provided, giving useful implementation context.'
+            : toolsCount === 2
+              ? 'Two current tools were provided, but the stack still needs more workflow context.'
+              : toolsCount === 1
+                ? 'One current tool was provided, which gives limited implementation context.'
+                : 'Current tool stack needs more detail.',
+    },
+    {
+      label: 'Automation goal clarity',
+      points: goals,
+      max: 20,
+      detail:
+        goalLevel >= 4
+          ? 'Automation goal is specific and tied to an operational workflow.'
+          : goalLevel === 3
+            ? 'Automation goal is specific enough to guide planning.'
+            : goalLevel === 2
+              ? 'Automation goal is useful but needs more measurable detail.'
+              : goalLevel === 1
+                ? 'Automation goal is present but too broad.'
+                : 'No automation goal was provided.',
+    },
+    {
+      label: 'Integration opportunity',
+      points: integrations,
+      max: 15,
+      detail:
+        integrationLevel >= 4
+          ? 'Integration need shows a clear system handoff or workflow connection.'
+          : integrationLevel === 3
+            ? 'Integration need suggests a useful systems opportunity.'
+            : integrationLevel === 2
+              ? 'Integration need is identified but needs clearer system handoff detail.'
+              : integrationLevel === 1
+                ? 'Integration need is present but vague.'
+                : 'No integration need was identified.',
+    },
+    {
+      label: 'Budget readiness',
+      points: budget,
+      max: 10,
+      detail:
+        budget === 10
+          ? 'Budget signal indicates strong implementation capacity.'
+          : budget >= 8
+            ? 'Budget signal supports a meaningful automation implementation.'
+            : budget >= 5
+              ? 'Budget signal supports a cautious starting point or scoped pilot.'
+              : budget > 0
+                ? 'Budget signal suggests early exploration rather than full implementation readiness.'
+                : 'Budget signal is missing or uncertain.',
+    },
+    {
+      label: 'Execution readiness',
+      points: executionReadiness,
+      max: 15,
+      detail:
+        executionReadiness === 15
+          ? 'Pain points and automation goals include enough operational detail to support implementation planning.'
+          : executionReadiness === 10
+            ? 'Inputs show meaningful planning signals, but implementation details could be stronger.'
+            : executionReadiness === 5
+              ? 'Some execution signals are present, but workflow and goal detail need more specificity.'
+              : 'Execution readiness is limited because workflow and goal detail are still thin.',
+    },
   ]
 
   let score = factors.reduce((total, factor) => total + factor.points, 0)
 
   if (goals < 20 && score > 80) {
-  score -= 10
+    score -= 10
   }
 
   if (executionReadiness < 15 && score > 85) {
     score -= 8
   }
 
-  // Prevent high readiness scores unless strong planning + execution signals exist
+  if (painPoints < 12 && score > 75) {
+    score -= 6
+  }
+
+  if (integrations < 12 && score > 82) {
+    score -= 5
+  }
+
+  score = Math.max(0, Math.min(100, score))
 
   return {
     score,
     band: getBand(score),
     summary: getSummary(score),
     factors,
+  }
+}
+
+function detectRecommendationContext(audit: AutomationReadinessAuditInput) {
+  const text = [
+    audit.industry,
+    audit.primary_pain,
+    audit.automation_goals,
+    audit.integration_needs,
+    ...(audit.time_wasters || []),
+    ...(audit.current_tools || []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  return {
+    isEcommerce: text.includes('e-commerce') || text.includes('ecommerce') || text.includes('shopify'),
+    hasShopify: text.includes('shopify'),
+    hasSocialMedia: text.includes('social') || text.includes('instagram') || text.includes('facebook') || text.includes('tiktok'),
+    hasLeadPain: text.includes('lead') || text.includes('sales') || text.includes('prospect'),
+    hasContentPain: text.includes('content') || text.includes('youtube') || text.includes('podcast') || text.includes('social media'),
+    hasReportingPain: text.includes('reporting') || text.includes('report'),
+    hasManualEntry: text.includes('manual data entry') || text.includes('manual entry'),
+    hasSlack: text.includes('slack'),
+    hasMicrosoft365: text.includes('microsoft 365') || text.includes('office 365'),
+    hasGoogleWorkspace: text.includes('google workspace'),
+    hasCRM: text.includes('crm') || text.includes('salesforce') || text.includes('hubspot'),
   }
 }
 
@@ -302,9 +450,53 @@ export function getScoreAwareRecommendations(
   })
 }
 
-export type ToolAwareRecommendation = ScoreAwareRecommendation & {
-  toolContext?: string
-  suggestedPath?: string
+function getEcommerceShopifyRecommendations(
+  audit: AutomationReadinessAuditInput
+): ToolAwareRecommendation[] {
+  return [
+    {
+      title: 'Map the social-commerce order path before automating Shopify handoffs',
+      why: 'Your audit points to social media sales and Shopify integration as the central automation opportunity. Before automation is added, the path from social interaction to product selection, checkout, customer record, and fulfillment needs to be clearly defined.',
+      nextStep: 'Write the current path from social inquiry to Shopify order as 5–7 steps, then mark where manual entry, missed follow-up, or reporting delays occur.',
+      toolContext: 'Shopify should remain the system of record for products, orders, and customer activity, while Slack and Microsoft 365 can support alerts, internal handoffs, and lightweight reporting.',
+      suggestedPath: 'Start with one social channel and map how a customer moves from message, comment, or product interest into Shopify checkout and post-purchase follow-up.',
+    },
+    {
+      title: 'Define what qualifies as a social-driven sale or lead',
+      why: 'Automation will be more useful if the system can distinguish casual engagement from a purchase-ready customer or support-worthy inquiry.',
+      nextStep: 'Create 3–5 qualification rules, such as product interest, purchase intent, order question, abandoned checkout signal, or repeat customer status.',
+      toolContext: 'Shopify can anchor customer and order data, while Microsoft 365 can help document qualification rules and Slack can notify the team when a high-priority social interaction needs attention.',
+      suggestedPath: 'Begin by tagging the most common social interactions and deciding which ones should create a Shopify action, internal alert, or follow-up task.',
+    },
+    {
+      title: 'Create a simple reporting loop for social sales performance',
+      why: 'Your audit identified reporting and social media integration as recurring friction points. A lightweight reporting loop can show which social channels are actually driving sales or customer activity.',
+      nextStep: 'Choose three metrics to track weekly, such as social-driven orders, abandoned checkouts, and customer inquiries that converted into purchases.',
+      toolContext: 'Shopify can provide sales/order data, Microsoft 365 can support weekly reporting, and Slack can deliver automated summaries or exceptions to the team.',
+      suggestedPath: 'Start with a weekly report that connects social activity to Shopify outcomes before expanding into more advanced automation.',
+    },
+  ]
+}
+
+export function getContextAwareRecommendations({
+  audit,
+  readiness,
+}: {
+  audit: AutomationReadinessAuditInput
+  readiness: AutomationReadinessResult
+}): ToolAwareRecommendation[] {
+  const context = detectRecommendationContext(audit)
+
+  if (context.isEcommerce && context.hasShopify && context.hasSocialMedia) {
+    return getEcommerceShopifyRecommendations(audit)
+  }
+
+  const baseRecommendations = getScoreAwareRecommendations(readiness)
+
+  return addToolContextToRecommendations({
+    recommendations: baseRecommendations,
+    currentTools: audit.current_tools,
+  })
 }
 
 function normalizeTools(tools?: string[] | null) {

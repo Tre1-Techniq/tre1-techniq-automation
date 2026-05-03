@@ -11,16 +11,19 @@ export default function UpgradePrompt({
   title,
   body,
   cta = 'Unlock Full Report',
+  price = '$19 BETA access',
+  paymentNote = 'One-time payment. Unlocks your full report immediately after checkout.',
 }: {
   title: string
   body: string
   cta?: string
+  price?: string
+  paymentNote?: string
 }) {
   const [showPayment, setShowPayment] = useState(false)
 
   return (
     <section className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
-      
       <p className="text-sm font-semibold text-tre1-teal">
         🔒 {title}
       </p>
@@ -39,66 +42,74 @@ export default function UpgradePrompt({
         </button>
       ) : (
         <div className="mt-6">
-
           <p className="mb-3 text-xs text-gray-500">
             Secure checkout powered by PayPal
           </p>
 
-          {/* 🔥 CRITICAL FIX: Provider wraps buttons */}
+          <div className="mx-auto mb-4 max-w-sm rounded-lg border border-orange-200 bg-orange-50 p-4 text-left">
+            <p className="text-sm font-bold text-gray-900">
+              {price}
+            </p>
+
+            <p className="mt-1 text-xs leading-5 text-gray-600">
+              {paymentNote}
+            </p>
+          </div>
+
           <div className="mx-auto mt-4 w-full max-w-sm">
-          <PayPalScriptProvider
-            options={{
-              clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
-              currency: 'USD',
-              intent: 'capture',
-              components: 'buttons',
-              disableFunding: 'paylater,card',
-            }}
-          >
-            <PayPalButtons
-              style={{
-                layout: 'vertical',
-                shape: 'pill',
-                label: 'paypal',
+            <PayPalScriptProvider
+              options={{
+                clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
+                currency: 'USD',
+                intent: 'capture',
+                components: 'buttons',
+                disableFunding: 'paylater,card',
               }}
-              createOrder={async () => {
-                const res = await fetch('/api/paypal/create-order', {
-                  method: 'POST',
-                })
+            >
+              <PayPalButtons
+                style={{
+                  layout: 'vertical',
+                  shape: 'pill',
+                  label: 'paypal',
+                }}
+                createOrder={async () => {
+                  const res = await fetch('/api/paypal/create-order', {
+                    method: 'POST',
+                  })
 
-                const data = await res.json()
+                  const data = await res.json()
 
-                if (!data.id) {
-                  console.error('[PAYPAL] Missing order ID', data)
-                  throw new Error('PayPal order ID missing')
-                }
+                  if (!data.id) {
+                    console.error('[PAYPAL] Missing order ID', data)
+                    throw new Error('PayPal order ID missing')
+                  }
 
-                return data.id
-              }}
-              onApprove={async (data) => {
-                console.log('[PAYPAL FRONTEND] onApprove fired', data)
+                  return data.id
+                }}
+                onApprove={async (data) => {
+                  console.log('[PAYPAL FRONTEND] onApprove fired', data)
 
-                const res = await fetch('/api/paypal/capture-order', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ orderID: data.orderID }),
-                })
+                  const res = await fetch('/api/paypal/capture-order', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ orderID: data.orderID }),
+                  })
 
-                const result = await res.json()
-                console.log('[PAYPAL FRONTEND] capture result', result)
+                  const result = await res.json()
+                  console.log('[PAYPAL FRONTEND] capture result', result)
 
-                if (!res.ok || !result.unlocked) {
-                  alert('Payment was not confirmed. Check logs.')
-                  return
-                }
+                  if (!res.ok || !result.unlocked) {
+                    alert('Payment was not confirmed. Check logs.')
+                    return
+                  }
 
-                window.location.reload()
-              }}
-            />
-          </PayPalScriptProvider>
-        </div>
+                  window.location.reload()
+                }}
+              />
+            </PayPalScriptProvider>
+          </div>
 
           <button
             onClick={() => setShowPayment(false)}

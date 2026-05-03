@@ -8,7 +8,6 @@ import {
   ArrowDownTrayIcon,
   ArrowRightIcon,
   BriefcaseIcon,
-  CheckCircleIcon,
   ChartBarIcon,
   ClipboardDocumentListIcon,
   CogIcon,
@@ -16,7 +15,10 @@ import {
   ExclamationTriangleIcon,
   SparklesIcon,
   ClockIcon,
+  BookOpenIcon,
 } from '@heroicons/react/24/outline'
+
+import { CheckCircleIcon } from '@heroicons/react/24/solid'
 
 import UpgradePrompt from '@/components/UpgradePrompt'
 
@@ -62,6 +64,47 @@ type DisplayRecommendation = {
   suggestedPath?: string
 }
 
+type ExecutiveSummaryData = {
+  headline: string
+  readinessSummary: string
+  timeSavingsSummary: string
+  painPointSummary: string
+  toolContextSummary: string
+  recommendationDirection: string
+  nextStepSummary: string
+}
+
+type ReadinessFactor = {
+  label: string
+  points: number
+  max: number
+  detail: string
+}
+
+type ReadinessData = {
+  score?: number
+  band?: string
+  summary?: string | null
+  factors: ReadinessFactor[]
+}
+
+type AiSummaryData = {
+  executive_summary: string
+  executive_summary_json?: ExecutiveSummaryData | null
+  executiveSummary?: ExecutiveSummaryData | null
+
+  recommendations: (DisplayRecommendation | string)[]
+
+  readiness_score?: number
+  readiness_band?: string
+  readiness_summary?: string | null
+  readiness_factors?: ReadinessFactor[]
+
+  readiness?: ReadinessData
+
+  unlocked?: boolean
+}
+
 function formatDate(value: string | null) {
   if (!value) return 'Pending'
   const date = new Date(value)
@@ -70,6 +113,32 @@ function formatDate(value: string | null) {
 
 function fallback(value: string | null | undefined) {
   return value?.trim() || '—'
+}
+
+function normalizeRecommendations(
+  recommendations: (DisplayRecommendation | string)[] | undefined
+): DisplayRecommendation[] {
+  if (!recommendations) return []
+
+  return recommendations.map((rec) => {
+    if (typeof rec === 'string') {
+      return {
+        title: rec,
+        why: 'This recommendation is based on your Initial Audit inputs.',
+        nextStep: 'Review the related workflow and identify the first action you can take.',
+        toolContext: 'Tool-aware guidance will appear here once your submitted stack is mapped.',
+        suggestedPath: 'Start by identifying the workflow trigger, manual handoff, and desired result.',
+      }
+    }
+
+    return {
+      title: rec.title || '',
+      why: rec.why || '',
+      nextStep: rec.nextStep || '',
+      toolContext: rec.toolContext || '',
+      suggestedPath: rec.suggestedPath || '',
+    }
+  })
 }
 
 export default function ReportsPage() {
@@ -81,20 +150,7 @@ export default function ReportsPage() {
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [audit, setAudit] = useState<AuditData | null>(null)
 
-  const [aiSummary, setAiSummary] = useState<{
-    executive_summary: string
-    recommendations: string[]
-    readiness_score?: number
-    readiness_band?: string
-    readiness_summary?: string
-    readiness_factors?: {
-      label: string
-      points: number
-      max: number
-      detail: string
-    }[]
-    unlocked?: boolean
-  } | null>(null)
+  const [aiSummary, setAiSummary] = useState<AiSummaryData | null>(null)
 
   const [loading, setLoading] = useState(true)
 
@@ -173,11 +229,23 @@ useEffect(() => {
 
           setAiSummary({
             executive_summary: data.executive_summary,
+            executive_summary_json: data.executive_summary_json ?? null,
+            executiveSummary: data.executiveSummary ?? data.executive_summary_json ?? null,
+
             recommendations: data.recommendations || [],
+
             readiness_score: data.readiness_score,
             readiness_band: data.readiness_band,
-            readiness_summary: data.readiness_summary,
+            readiness_summary: data.readiness_summary ?? null,
             readiness_factors: data.readiness_factors || [],
+
+            readiness: data.readiness ?? {
+              score: data.readiness_score,
+              band: data.readiness_band,
+              summary: data.readiness_summary ?? null,
+              factors: data.readiness_factors || [],
+            },
+
             unlocked: data.unlocked === true,
           })
 
@@ -255,26 +323,32 @@ useEffect(() => {
     },
   ]
 
+const aiRecommendations = normalizeRecommendations(aiSummary?.recommendations)
+
 const displayedRecommendations: DisplayRecommendation[] =
-  toolAwareRecommendations.length > 0
-    ? toolAwareRecommendations
-    : aiSummary?.recommendations?.length
-      ? aiSummary.recommendations.map((item) => ({
-          title: item,
-          why: 'This recommendation is based on your Initial Audit inputs.',
-          nextStep: 'Review the related workflow and identify the first action you can take.',
-          toolContext: 'Tool-aware guidance will appear here once your submitted stack is mapped.',
-          suggestedPath: 'Start by identifying the workflow trigger, manual handoff, and desired result.',
-        }))
+  canViewPremiumReport && aiRecommendations.length > 0
+    ? aiRecommendations
+    : toolAwareRecommendations.length > 0
+      ? toolAwareRecommendations
       : recommendations
 
-  const displayedExecutiveSummary =
+const visibleRecommendations = canViewPremiumReport
+  ? displayedRecommendations
+  : displayedRecommendations.slice(0, 1)
+
+const executiveSummary =
+  aiSummary?.executiveSummary || aiSummary?.executive_summary_json || null
+
+const displayedExecutiveSummary =
   aiSummary?.executive_summary || 'Loading your saved report summary...'
 
-  console.log('LIVE readiness:', readiness?.score)
-  console.log('DB readiness:', aiSummary?.readiness_score)
+const timeSavings = audit ? calculateTimeSavings(audit) : null
 
-  const timeSavings = audit ? calculateTimeSavings(audit) : null
+const displayedTimeSavingsSummary =
+  executiveSummary?.timeSavingsSummary ||
+  (timeSavings
+    ? `The system estimates that targeted automation could recover approximately ${timeSavings.hoursPerWeek} hours per week.`
+    : 'Estimated time savings will appear once enough workflow detail is available.')
 
   if (loading) {
     return (
@@ -318,13 +392,13 @@ const displayedRecommendations: DisplayRecommendation[] =
             </p>
           </div>
 
-          <a
+          {/* <a
             href="/api/reports/pdf"
             className="inline-flex items-center justify-center rounded-full bg-tre1-teal/10 px-4 py-2 text-sm font-semibold text-tre1-teal transition hover:bg-tre1-teal hover:text-white"
           >
             <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
             Download PDF
-          </a>
+          </a> */}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 border-t border-gray-200 pt-6 sm:grid-cols-3">
@@ -333,8 +407,18 @@ const displayedRecommendations: DisplayRecommendation[] =
             <p className="mt-1 font-semibold text-gray-900">{submittedDate}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Status</p>
-            <p className="mt-1 font-semibold capitalize text-gray-900">{audit.status || 'submitted'}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Status
+            </p>
+            <p
+              className={`mt-1 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
+                canViewPremiumReport
+                  ? 'bg-tre1-teal/10 text-tre1-teal'
+                  : 'bg-orange-50 text-orange-600'
+              }`}
+            >
+              {canViewPremiumReport ? 'Full Report' : 'Preview'}
+            </p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Access</p>
@@ -384,6 +468,10 @@ const displayedRecommendations: DisplayRecommendation[] =
           </div>
         ) : (
           <div className="mt-6 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Locked Feature
+            </p>
+
             {!canViewPremiumReport && (
               <UpgradePrompt
                 title="Unlock Readiness Details"
@@ -407,9 +495,26 @@ const displayedRecommendations: DisplayRecommendation[] =
             <div className="h-4 w-11/12 animate-pulse rounded bg-gray-100" />
             <div className="h-4 w-10/12 animate-pulse rounded bg-gray-100" />
           </div>
+        ) : executiveSummary ? (
+          <div
+            className="text-base text-gray-700 leading-7"
+            dangerouslySetInnerHTML={{
+              __html: [
+                executiveSummary.headline,
+                executiveSummary.readinessSummary,
+                executiveSummary.timeSavingsSummary,
+                executiveSummary.painPointSummary,
+                executiveSummary.toolContextSummary,
+                executiveSummary.recommendationDirection,
+                executiveSummary.nextStepSummary,
+              ]
+                .filter(Boolean)
+                .join(' '),
+            }}
+          />
         ) : (
           <div
-            className="text-gray-700 leading-7 whitespace-pre-line"
+            className="text-base text-gray-700 leading-7"
             dangerouslySetInnerHTML={{ __html: displayedExecutiveSummary }}
           />
         )}
@@ -472,18 +577,26 @@ const displayedRecommendations: DisplayRecommendation[] =
         </div>
       </section>
 
-      {canViewPremiumReport ? (
-        <section id="time-savings" className="rounded-xl bg-white p-6 shadow">
-          <div className="mb-5 flex items-center gap-3">
-            <ClockIcon className="h-6 w-6 text-tre1-teal" />
-            <h2 className="text-xl font-bold text-gray-900">Potential Time Savings</h2>
-          </div>
+      <section id="time-savings" className="rounded-xl bg-white p-6 shadow">
+        <div className="mb-5 flex items-center gap-3">
+          <ClockIcon className="h-6 w-6 text-tre1-teal" />
+          <h2 className="text-xl font-bold text-gray-900">Potential Time Savings</h2>
+        </div>
 
-          <p className="text-gray-700 leading-7">
-            {timeSavings?.summary ||
-              'This estimate is based on repetitive workflow signals submitted in your Initial Audit.'}
-          </p>
+        <div className="flex items-end gap-1">
+          <span className="text-4xl font-bold tracking-tight text-gray-900">
+            {timeSavings ? timeSavings.hoursPerWeek : '...'}
+          </span>
+          <span className="pb-1 text-sm font-semibold text-gray-700">hrs</span>
+          <span className="pb-1 text-sm text-gray-500">/week</span>
+        </div>
 
+        <p
+          className="mt-4 max-w-3xl text-gray-700 leading-7"
+          dangerouslySetInnerHTML={{ __html: displayedTimeSavingsSummary }}
+        />
+
+        {canViewPremiumReport ? (
           <div className="mt-5 space-y-3">
             {(timeSavings?.tasks || []).slice(0, 3).map((item, index) => (
               <div key={item} className="flex gap-3 rounded-lg bg-gray-50 p-4 text-gray-700">
@@ -494,27 +607,7 @@ const displayedRecommendations: DisplayRecommendation[] =
               </div>
             ))}
           </div>
-        </section>
-      ) : (
-        <section id="time-savings" className="rounded-xl bg-white p-6 shadow">
-          <div className="mb-5 flex items-center gap-3">
-            <ClockIcon className="h-6 w-6 text-tre1-teal" />
-            <h2 className="text-xl font-bold text-gray-900">Potential Time Savings</h2>
-          </div>
-
-          <div className="flex items-end gap-1">
-            <span className="text-4xl font-bold tracking-tight text-gray-900">
-              {timeSavings ? timeSavings.hoursPerWeek : '...'}
-            </span>
-            <span className="pb-1 text-sm font-semibold text-gray-700">hrs</span>
-            <span className="pb-1 text-sm text-gray-500">/week</span>
-          </div>
-
-          <p className="mt-4 max-w-3xl text-gray-700 leading-7">
-            {timeSavings?.summary ||
-              'Your audit identified repetitive workflow signals that may be good candidates for automation.'}
-          </p>
-
+        ) : (
           <div className="mt-6 rounded-lg bg-gray-50 p-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
               Locked Feature
@@ -528,8 +621,8 @@ const displayedRecommendations: DisplayRecommendation[] =
               />
             </div>
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       <section id="recommendations" className="rounded-xl bg-white p-6 shadow">
         <div className="mb-5 flex items-center gap-3">
@@ -537,58 +630,80 @@ const displayedRecommendations: DisplayRecommendation[] =
           <h2 className="text-xl font-bold text-gray-900">Recommendations</h2>
         </div>
 
-        {(isPaid ? displayedRecommendations : displayedRecommendations.slice(0, 1)).map((recommendation, index) => (
-          <div
-            key={`${recommendation.title}-${index}`}
-            className="rounded-lg border border-gray-200 p-5 text-gray-700"
-          >
-            <div className="flex items-start gap-3">
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
-                {index + 1}
-              </span>
+        <div className="space-y-5">
+          {visibleRecommendations.map((recommendation, index) => (
+            <div
+              key={`${recommendation.title}-${index}`}
+              className="rounded-lg border border-gray-200 p-5 text-gray-700"
+            >
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tre1-teal/10 text-xs font-semibold text-tre1-teal">
+                  {index + 1}
+                </span>
 
-              <p className="font-semibold text-gray-900">
-                {recommendation.title}
-              </p>
+                <div>
+                  <h3 className="font-semibold text-gray-900">
+                    {recommendation.title}
+                  </h3>
+
+                  {recommendation.why && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      {recommendation.why}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                {recommendation.toolContext && (
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
+                      Tool angle
+                    </p>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {recommendation.toolContext}
+                    </p>
+                  </div>
+                )}
+
+                {recommendation.suggestedPath && (
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
+                      Implementation path
+                    </p>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {recommendation.suggestedPath}
+                    </p>
+                  </div>
+                )}
+
+                {recommendation.nextStep && (
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
+                      First action
+                    </p>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {recommendation.nextStep}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
-                  Tool context
-                </p>
-                <p className="mt-2 text-sm text-gray-600">
-                  {recommendation.toolContext || recommendation.why}
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
-                  Suggested path
-                </p>
-                <p className="mt-2 text-sm text-gray-600">
-                  {recommendation.suggestedPath || recommendation.why}
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-tre1-teal">
-                  Next step
-                </p>
-                <p className="mt-2 text-sm text-gray-600">
-                  {recommendation.nextStep}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
         {!canViewPremiumReport && (
-          <UpgradePrompt
-            title="Unlock your full recommendation set"
-            body="You’re seeing the first recommendation. Unlock the full set to view the next actions based on your audit."
-            cta="Unlock Recommendations"
-          />
+          <div className="mt-6">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Locked Feature
+            </p>
+
+            <UpgradePrompt
+              title="Unlock your full recommendation set"
+              body="You’re seeing the first recommendation. Unlock the full set to view the next actions based on your audit."
+              cta="Unlock Recommendations"
+            />
+          </div>
         )}
       </section>
 
@@ -646,18 +761,94 @@ const displayedRecommendations: DisplayRecommendation[] =
       )}
 
       {!canViewPremiumReport && (
-        <section className="rounded-xl bg-white p-8 shadow text-center">
-          <div className="mb-5 flex items-center gap-3">
-            <CogIcon className="h-6 w-6 text-tre1-teal" />
-            <h2 className="text-xl font-bold text-gray-900">
-              Ready to turn this audit into an automation plan?
-            </h2>
+        <section className="rounded-xl border border-orange-200 bg-orange-50 p-8 shadow">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
+            {/* LEFT: headline + price */}
+            <div>
+              <p className="mb-3 text-lg font-semibold uppercase tracking-wide text-orange-600">
+                Full Report Access
+              </p>
+
+              <div className="mb-5 flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-tre1-orange mt-3">
+                  <BookOpenIcon className="h-7 w-7 text-white" />
+                </div>
+
+                <h2 className="max-w-md text-3xl font-bold leading-tight text-gray-900">
+                  Turn your audit into a clear automation roadmap
+                </h2>
+              </div>
+
+              <p className="text-sm leading-6 text-gray-700">
+                Your preview shows where automation may help. Full access gives you the detailed breakdown needed to decide what to fix first, what to automate, and where your current tools can support execution.
+              </p>
+
+              <div className="mt-7 flex justify-center">
+                <div className="text-center">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Discounted BETA Access Price
+                  </p>
+                  <p className="mt-1 text-5xl font-bold tracking-tight text-gray-900">
+                    $19
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-gray-600">
+                    One-time fee. No subscription required.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT: benefits + CTA */}
+            <div className="rounded-xl border border-orange-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-xl font-bold text-tre1-teal">
+                Full access includes:
+              </p>
+
+              <ul className="space-y-4 text-base leading-6 text-gray-700">
+                <li className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                    <CheckCircleIcon className="h-9 w-9 text-tre1-teal" />
+                  </span>
+                  <span>Full recommendation set</span>
+                </li>
+
+                <li className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                    <CheckCircleIcon className="h-9 w-9 text-tre1-teal" />
+                  </span>
+                  <span>Time savings breakdown</span>
+                </li>
+
+                <li className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                    <CheckCircleIcon className="h-9 w-9 text-tre1-teal" />
+                  </span>
+                  <span>Automation readiness factor details</span>
+                </li>
+
+                <li className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                    <CheckCircleIcon className="h-9 w-9 text-tre1-teal" />
+                  </span>
+                  <span>Implementation direction based on your audit inputs</span>
+                </li>
+              </ul>
+
+              <div className="mt-6 rounded-lg bg-gray-50 p-5">
+                <p className="mb-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Locked Feature
+                </p>
+
+                <UpgradePrompt
+                  title="Unlock the Full BETA Report"
+                  body="Get the complete version of your automation report, including detailed recommendations, time savings breakdown, readiness factor details, and implementation direction."
+                  cta="Unlock Full Report"
+                  price="$19 BETA access"
+                  paymentNote="One-time payment. No subscription required. Includes full report access for this audit."
+                />
+              </div>
+            </div>
           </div>
-          <UpgradePrompt
-            title="Unlock Your Full Report"
-            body="Unlock the full implementation path, recommendations, time savings breakdown, and next-step guidance based on your audit."
-            cta="Unlock Full Report"
-          />
         </section>
       )}
     </div>

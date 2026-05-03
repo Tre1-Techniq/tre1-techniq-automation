@@ -3,8 +3,7 @@ import { createClient as createServerSupabaseClient } from '@/lib/server/supabas
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js'
 import {
   calculateAutomationReadiness,
-  getScoreAwareRecommendations,
-  addToolContextToRecommendations,
+  getContextAwareRecommendations
 } from '@/lib/reports/automationReadiness'
 
 import { calculateTimeSavings } from '@/lib/reports/timeSavings'
@@ -36,7 +35,7 @@ function buildExecutiveSummaryText(summary: any) {
     summary.toolContextSummary,
     summary.recommendationDirection,
     summary.nextStepSummary,
-  ].join('')
+  ].join(' ')
 }
 
 function buildDeterministicExecutiveSummary({
@@ -46,7 +45,12 @@ function buildDeterministicExecutiveSummary({
   audit,
 }: any) {
   const weakestFactor =
-    readiness.weakestFactors?.[0] || 'process standardization'
+  [...(readiness.factors || [])]
+    .sort((a, b) => {
+      const aRatio = a.max > 0 ? a.points / a.max : 1
+      const bRatio = b.max > 0 ? b.points / b.max : 1
+      return aRatio - bRatio
+    })[0]?.label.toLowerCase() || 'process standardization'
 
   const topRecommendation = recommendations.structuredRecommendations?.[0]
   const rec = topRecommendation?.title || ''
@@ -89,8 +93,8 @@ function buildDeterministicExecutiveSummary({
 
   if (band === 'Early Stage') {
     headline =
-      'Your business has clear automation potential, but process clarity should come first.'
-  } else if (band === 'Developing') {
+    'Your business is ready for targeted automation improvements.'
+  } else if (band === 'Emerging') {
     headline =
       'Your business is ready for targeted automation improvements.'
   } else if (band === 'Ready' && score >= 85) {
@@ -135,32 +139,71 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: audit, error: auditError } = await supabase
+  const normalizedEmail = user.email?.trim().toLowerCase()
+
+if (!normalizedEmail) {
+  return NextResponse.json(
+    { error: 'User email not found' },
+    { status: 400 }
+  )
+}
+
+const { data: audit, error: auditError } = await supabaseAdmin
+  .from('audit_requests')
+  .select(`
+    id,
+    company_name,
+    industry,
+    company_size,
+    primary_pain,
+    time_wasters,
+    current_tools,
+    automation_goals,
+    integration_needs,
+    budget,
+    submitted_by_user_id,
+    contact_email,
+    submitted_email
+  `)
+  .or(
+    `submitted_by_user_id.eq.${user.id},contact_email.eq.${normalizedEmail},submitted_email.eq.${normalizedEmail}`
+  )
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+
+if (auditError) {
+  console.error('[AI SUMMARY] Audit lookup failed', auditError)
+
+  return NextResponse.json(
+    { error: 'Audit lookup failed', auditError },
+    { status: 500 }
+  )
+}
+
+if (!audit) {
+  return NextResponse.json(
+    { error: 'Audit not found' },
+    { status: 404 }
+  )
+}
+
+// Backfill ownership if this audit was captured by email before/without auth linkage.
+if (!audit.submitted_by_user_id) {
+  const { error: linkAuditError } = await supabaseAdmin
     .from('audit_requests')
-    .select(`
-      id,
-      company_name,
-      industry,
-      company_size,
-      primary_pain,
-      time_wasters,
-      current_tools,
-      automation_goals,
-      integration_needs,
-      budget
-    `)
-    .eq('submitted_by_user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .update({ submitted_by_user_id: user.id })
+    .eq('id', audit.id)
+    .is('submitted_by_user_id', null)
 
-  if (auditError) {
-    return NextResponse.json({ error: 'Audit lookup failed' }, { status: 500 })
+  if (linkAuditError) {
+    console.error('[AI SUMMARY] Failed to link audit to user', {
+      auditId: audit.id,
+      userId: user.id,
+      linkAuditError,
+    })
   }
-
-  if (!audit) {
-    return NextResponse.json({ error: 'Audit not found' }, { status: 404 })
-  }
+}
 
   const typedAudit = audit as AuditData
 
@@ -196,11 +239,23 @@ export async function GET() {
     return NextResponse.json({
       executive_summary: existingReport.executive_summary,
       executive_summary_json: existingReport.executive_summary_json,
+
+      executiveSummary: existingReport.executive_summary_json,
+
       recommendations: existingReport.recommendations || [],
+
       readiness_score: existingReport.readiness_score,
       readiness_band: existingReport.readiness_band,
       readiness_summary: existingReport.readiness_summary,
       readiness_factors: existingReport.readiness_factors || [],
+
+      readiness: {
+        score: existingReport.readiness_score,
+        band: existingReport.readiness_band,
+        summary: existingReport.readiness_summary,
+        factors: existingReport.readiness_factors || [],
+      },
+
       summary_source: existingReport.summary_source,
       unlocked: isUnlocked,
     })
@@ -208,11 +263,9 @@ export async function GET() {
 
   // Only reaches here if no cached summary exists
   const readiness = calculateAutomationReadiness(typedAudit)
-  const baseRecommendations = getScoreAwareRecommendations(readiness)
-
-  const structuredRecommendations = addToolContextToRecommendations({
-    recommendations: baseRecommendations,
-    currentTools: typedAudit.current_tools,
+  const structuredRecommendations = getContextAwareRecommendations({
+    audit: typedAudit,
+    readiness,
   })
 
   const timeSavings = calculateTimeSavings(typedAudit)
@@ -303,6 +356,8 @@ ${JSON.stringify(summary)}
 
   await supabaseAdmin
   .from('audit_reports')
+  await supabaseAdmin
+  .from('audit_reports')
   .upsert(
     {
       audit_request_id: typedAudit.id,
@@ -312,6 +367,8 @@ ${JSON.stringify(summary)}
       recommendations: structuredRecommendations,
       readiness_score: readiness.score,
       readiness_band: readiness.band,
+      readiness_summary: readiness.summary,
+      readiness_factors: readiness.factors || [],
       unlocked: isUnlocked,
     },
     { onConflict: 'audit_request_id' }
@@ -320,11 +377,23 @@ ${JSON.stringify(summary)}
   return NextResponse.json({
     executive_summary: executiveSummaryText,
     executive_summary_json: finalSummary,
+
+    executiveSummary: finalSummary,
+
     recommendations: structuredRecommendations,
+
     readiness_score: readiness.score,
     readiness_band: readiness.band,
-    readiness_summary: existingReport?.readiness_summary ?? null,
+    readiness_summary: readiness.summary,
     readiness_factors: readiness.factors || [],
+
+    readiness: {
+      score: readiness.score,
+      band: readiness.band,
+      summary: readiness.summary,
+      factors: readiness.factors || [],
+    },
+
     summary_source: summarySource,
     unlocked: isUnlocked,
   })
