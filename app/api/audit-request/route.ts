@@ -55,6 +55,25 @@ export async function POST(request: NextRequest) {
       primary_pain: data.primaryPain || null,
       time_wasters: Array.isArray(data.timeWasters) ? data.timeWasters : [],
       current_tools: Array.isArray(data.currentTools) ? data.currentTools : [],
+      uses_crm: data.toolDetails?.usesCrm === 'yes',
+      crm_platforms: Array.isArray(data.toolDetails?.crmPlatforms)
+        ? data.toolDetails.crmPlatforms
+        : [],
+
+      uses_project_management: data.toolDetails?.usesProjectManagement === 'yes',
+      project_management_platforms: Array.isArray(data.toolDetails?.projectManagementPlatforms)
+        ? data.toolDetails.projectManagementPlatforms
+        : [],
+
+      uses_ecommerce_platform: data.toolDetails?.usesEcommercePlatform === 'yes',
+      ecommerce_platforms: Array.isArray(data.toolDetails?.ecommercePlatforms)
+        ? data.toolDetails.ecommercePlatforms
+        : [],
+
+      uses_social_channels: data.toolDetails?.usesSocialChannels === 'yes',
+      social_channels: Array.isArray(data.toolDetails?.socialChannels)
+        ? data.toolDetails.socialChannels
+        : [],
       automation_goals: data.automationGoals || null,
       integration_needs: data.integrationNeeds || null,
       budget: data.budget || null,

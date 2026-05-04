@@ -176,6 +176,70 @@ function getEcommerceShopifyRecommendations(
   ]
 }
 
+function getLeadCrmRecommendations(
+  audit: AutomationReadinessAuditInput
+): ToolAwareRecommendation[] {
+  const toolsText = (audit.current_tools || []).join(' ').toLowerCase()
+
+  const hasHubSpot = toolsText.includes('hubspot')
+  const hasSalesforce = toolsText.includes('salesforce')
+  const hasTrello = toolsText.includes('trello')
+  const hasAsana = toolsText.includes('asana')
+  const hasGoogleWorkspace =
+    toolsText.includes('google workspace') ||
+    toolsText.includes('gmail') ||
+    toolsText.includes('google sheets')
+
+  const crmName = hasHubSpot
+    ? 'HubSpot'
+    : hasSalesforce
+      ? 'Salesforce'
+      : 'your CRM'
+
+  const projectTool = hasTrello
+    ? 'Trello'
+    : hasAsana
+      ? 'Asana'
+      : 'your project management tool'
+
+  const workspaceTool = hasGoogleWorkspace
+    ? 'Google Workspace'
+    : 'your workspace tools'
+
+  return [
+    {
+      title: 'Map the lead follow-up path from inquiry to CRM stage',
+      why:
+        'Your audit points to lead follow-up as the main workflow constraint. Before automating reminders or handoffs, the business needs a clear path from initial inquiry to qualification, CRM stage, follow-up owner, and next action.',
+      nextStep:
+        'Write the current lead path as 5–7 steps, starting with the first inquiry and ending with the next scheduled follow-up or closed opportunity.',
+      toolContext: `${crmName} should serve as the system of record for lead status, qualification notes, and follow-up history, while ${workspaceTool} can support forms, email, documents, and reporting around the sales process.`,
+      suggestedPath:
+        'Start by identifying where new leads enter the business, who reviews them, what qualifies them, and which CRM stage should trigger the next follow-up action.',
+    },
+    {
+      title: 'Define lead qualification and follow-up trigger rules',
+      why:
+        'Follow-up automation works best when the system knows which leads require immediate action, which ones need nurturing, and which ones should be deprioritized.',
+      nextStep:
+        'Create 3–5 lead rules, such as inquiry source, urgency, budget fit, product or service interest, response status, and time since last contact.',
+      toolContext: `${crmName} can organize lead stages and follow-up rules, while ${projectTool} can help route tasks or implementation follow-ups when a lead becomes actionable.`,
+      suggestedPath:
+        'Begin with one lead source and define what should happen when a lead is new, qualified, waiting on response, overdue, or ready for a sales conversation.',
+    },
+    {
+      title: 'Create a visibility loop for lead follow-up performance',
+      why:
+        'Lead follow-up often breaks down because teams cannot easily see which leads are overdue, which source is producing qualified prospects, or where conversations are stalling.',
+      nextStep:
+        'Choose three weekly metrics to track, such as new leads, overdue follow-ups, and qualified leads moved to the next stage.',
+      toolContext: `${crmName} can provide lead and pipeline data, ${workspaceTool} can support lightweight reporting, and ${projectTool} can help track internal follow-up tasks or handoffs.`,
+      suggestedPath:
+        'Start with a simple weekly review that connects lead source, CRM status, follow-up owner, and next action before building more advanced automation.',
+    },
+  ]
+}
+
 export function getContextAwareRecommendations({
   audit,
   readiness,
@@ -187,6 +251,10 @@ export function getContextAwareRecommendations({
 
   if (context.isEcommerce && context.hasShopify && context.hasSocialMedia) {
     return getEcommerceShopifyRecommendations(audit)
+  }
+
+  if (context.hasLeadPain && context.hasCRM) {
+    return getLeadCrmRecommendations(audit)
   }
 
   const baseRecommendations = getScoreAwareRecommendations(readiness)
