@@ -260,7 +260,7 @@ const stepGuidance: Record<
   },
 }
 
-const MAX_DESCRIPTION_LENGTH = 200
+const MAX_DESCRIPTION_LENGTH = 250
 const MAX_INTEGRATION_NEEDS_LENGTH = 120
 
 type ValidationField =
@@ -905,17 +905,23 @@ export default function MultiStepAuditForm() {
   }
 
   useEffect(() => {
-    const isMobile = window.matchMedia('(max-width: 767px)').matches
-    const isAdvancing = currentStep > previousStepRef.current
+  const stepChanged = currentStep !== previousStepRef.current
 
-    if (isMobile && isAdvancing) {
-      formShellRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (stepChanged) {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          formShellRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          })
+        })
+      })
     }
 
     previousStepRef.current = currentStep
   }, [currentStep])
 
-  const handleBack = () => {
+    const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1)
     }
