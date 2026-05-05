@@ -162,7 +162,15 @@ const { data: audit, error: auditError } = await supabaseAdmin
     budget,
     submitted_by_user_id,
     contact_email,
-    submitted_email
+    submitted_email,
+    uses_crm,
+    crm_platforms,
+    uses_project_management,
+    project_management_platforms,
+    uses_ecommerce_platform,
+    ecommerce_platforms,
+    uses_social_channels,
+    social_channels
   `)
   .or(
     `submitted_by_user_id.eq.${user.id},contact_email.eq.${normalizedEmail},submitted_email.eq.${normalizedEmail}`

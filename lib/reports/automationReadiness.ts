@@ -5,6 +5,19 @@ export type AutomationReadinessAuditInput = {
   primary_pain?: string | null
   time_wasters?: string[] | null
   current_tools?: string[] | null
+
+  uses_crm?: boolean | null
+  crm_platforms?: string[] | null
+
+  uses_project_management?: boolean | null
+  project_management_platforms?: string[] | null
+
+  uses_ecommerce_platform?: boolean | null
+  ecommerce_platforms?: string[] | null
+
+  uses_social_channels?: boolean | null
+  social_channels?: string[] | null
+
   automation_goals?: string | string[] | null
   integration_needs?: string | string[] | null
   budget?: string | null
@@ -52,36 +65,14 @@ function hasOperationalDetail(value?: string | null) {
   const text = value.toLowerCase()
 
   return [
-    'daily',
-    'weekly',
-    'monthly',
-    'hours',
-    'team',
-    'customer',
-    'client',
-    'lead',
-    'handoff',
-    'manual',
-    'follow up',
-    'follow-up',
-    'crm',
-    'email',
-    'report',
-    'reporting',
-    'approval',
+    'client communication',
+    'customer communication',
     'intake',
-    'tracking',
-    'update',
-    'qualify',
-    'publish',
-    'review',
-    'order',
-    'checkout',
-    'inventory',
-    'fulfillment',
-    'schedule',
-    'pipeline',
-    'dashboard',
+    'inquiry',
+    'follow-up',
+    'follow up',
+    'scheduling',
+    'appointment',
   ].some((term) => text.includes(term))
 }
 

@@ -84,6 +84,32 @@ export const toolModifiers: Record<string, ToolModifier> = {
       'handoff tracking',
     ],
   },
+
+  quickbooks: {
+    key: 'quickbooks',
+    label: 'QuickBooks',
+    role: 'accounting and financial record system for invoices, payments, expenses, revenue, and reconciliation',
+    suggestedUses: [
+        'invoice tracking',
+        'payment reconciliation',
+        'expense reporting',
+        'revenue summaries',
+        'accounting handoffs',
+    ],
+    },
+
+  pos: {
+    key: 'pos',
+    label: 'POS system',
+    role: 'transaction system for sales, payments, customer purchases, receipts, and front-line revenue activity',
+    suggestedUses: [
+        'sales transactions',
+        'payment records',
+        'daily sales summaries',
+        'customer purchase history',
+        'inventory or revenue handoffs',
+    ],
+  },
 }
 
 function normalizeTools(currentTools?: string[] | null) {
@@ -137,6 +163,19 @@ export function getActiveToolModifiers(currentTools?: string[] | null) {
     text.includes('jira')
   ) {
     active.push(toolModifiers.projectManagement)
+  }
+
+  if (text.includes('quickbooks')) active.push(toolModifiers.quickbooks)
+
+  if (
+    text.includes('pos') ||
+    text.includes('point of sale') ||
+    text.includes('square') ||
+    text.includes('toast') ||
+    text.includes('clover') ||
+    text.includes('lightspeed')
+    ) {
+    active.push(toolModifiers.pos)
   }
 
   return active

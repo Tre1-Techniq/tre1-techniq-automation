@@ -161,7 +161,7 @@ const steps = [
           'QuickBooks',
           'PowerPoint',
           'Zapier',
-          'OpenAI',
+          'Adobe Creative Cloud',
           'Docusign',
           'ADP',
           'Stripe',
